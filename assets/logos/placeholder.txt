@@ -1,0 +1,19 @@
+# Placeholder for Logos
+
+This folder is for storing logo files.
+
+Recommended formats:
+- SVG (preferred for scalability)
+- PNG (with transparency)
+- ICO (for favicon)
+
+Logo files needed:
+- Main logo (for header)
+- Favicon (16x16, 32x32)
+- Social media logos
+- Footer logo
+
+Tips:
+- Keep logo file sizes small
+- Use SVG for best quality
+- Include both light and dark versions if needed

@@ -1,0 +1,9 @@
+# Robots.txt for City Air Cooling Services
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://www.cityaircooling.com/seo/sitemap.xml
+
+</parameter>
+</create_file>

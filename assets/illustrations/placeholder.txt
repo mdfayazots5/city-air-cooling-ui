@@ -1,0 +1,20 @@
+# Placeholder for Service Illustrations
+
+This folder is for storing service-related illustrations.
+
+Illustration types:
+- Before/after images
+- Service process diagrams
+- Technician images
+- Service vehicle images
+- Equipment images
+
+Recommended formats:
+- SVG (preferred)
+- PNG (with transparency)
+- JPG (for photos)
+
+Tips:
+- Use consistent style for all illustrations
+- Keep file sizes optimized
+- Include alt text for accessibility

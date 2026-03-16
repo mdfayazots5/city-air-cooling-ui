@@ -1,0 +1,20 @@
+# Placeholder for Icons
+
+This folder is for storing icons used on the website.
+
+Recommended icon formats:
+- SVG (Scalable Vector Graphics) - preferred
+- PNG for fallback
+- ICO for favicon
+
+Common icons needed:
+- Phone icon
+- WhatsApp icon
+- Location/Marker icon
+- Clock icon
+- Checkmark icon
+- Service icons
+
+Tip: Use SVG icons for best quality and smallest file size.
+
+

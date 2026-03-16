@@ -1,0 +1,17 @@
+# Placeholder for Images
+
+This folder is for storing images used on the website.
+
+Recommended image types:
+- Hero images (1920x1080)
+- Service images (800x600)
+- Icons (SVG preferred)
+- Logos (PNG with transparency)
+
+Image optimization tips:
+- Use WebP format for better compression
+- Compress images before uploading
+- Use lazy loading for below-fold images
+- Add alt text for accessibility
+
+

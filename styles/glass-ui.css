@@ -1,0 +1,249 @@
+/**
+ * ============================================================================
+ * GLASS UI SYSTEM - SIMPLIFIED
+ * City Air Cooling Services
+ * ============================================================================
+ * Minimal glass morphism effects for the service website
+ * ============================================================================
+ */
+
+/* ============================================================================
+   GRADIENT BACKGROUND CLASSES
+   ============================================================================ */
+
+.gradient-bg {
+    background: linear-gradient(135deg, var(--color-background) 0%, var(--color-background-alt) 100%);
+}
+
+.gradient-primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+}
+
+.gradient-accent {
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+}
+
+.gradient-hero {
+    background: linear-gradient(135deg, 
+        var(--color-primary) 0%, 
+        #0052a3 50%, 
+        var(--color-primary-dark) 100%);
+}
+
+.gradient-section {
+    background: linear-gradient(180deg, 
+        var(--color-surface) 0%, 
+        var(--color-background) 100%);
+}
+
+.gradient-glow {
+    background: radial-gradient(ellipse at center, 
+        rgba(0, 102, 204, 0.1) 0%, 
+        transparent 70%);
+}
+
+/* ============================================================================
+   GLASS CARD (Minimal)
+   ============================================================================ */
+
+.glass-card {
+    background: var(--color-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-card);
+    padding: var(--space-4);
+    transition: var(--transition-card);
+}
+
+.glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+/* ============================================================================
+   GLASS SECTION
+   ============================================================================ */
+
+.glass-section {
+    position: relative;
+    padding: var(--space-section) var(--space-container);
+    background: var(--color-background);
+}
+
+/* ============================================================================
+   GLASS BUTTONS (Minimal)
+   ============================================================================ */
+
+.glass-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    font-weight: var(--font-weight-semibold);
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius-button);
+    transition: var(--transition-button);
+    text-decoration: none;
+}
+
+.glass-btn-primary {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    color: var(--color-text-inverse);
+}
+
+.glass-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-primary);
+}
+
+.glass-btn-accent {
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    color: var(--color-text-inverse);
+}
+
+.glass-btn-accent:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-accent);
+}
+
+.glass-btn-whatsapp {
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    color: var(--color-text-inverse);
+}
+
+.glass-btn-whatsapp:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-whatsapp);
+}
+
+/* Button sizes */
+.glass-btn-sm {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+}
+
+.glass-btn-md {
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-base);
+}
+
+.glass-btn-lg {
+    padding: var(--space-4) var(--space-6);
+    font-size: var(--text-lg);
+}
+
+/* Button glow animation */
+.glass-btn-glow {
+    animation: glass-btn-glow-pulse 2s infinite;
+}
+
+@keyframes glass-btn-glow-pulse {
+    0%, 100% {
+        box-shadow: var(--shadow-primary);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(0, 102, 204, 0.2);
+    }
+}
+
+/* ============================================================================
+   TYPOGRAPHY
+   ============================================================================ */
+
+.glass-hero-title {
+    font-family: var(--font-family-display);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-inverse);
+    line-height: 1.1;
+    margin-bottom: var(--space-3);
+}
+
+.glass-section-title {
+    font-family: var(--font-family-display);
+    font-size: var(--text-4xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    line-height: var(--leading-tight);
+    margin-bottom: var(--space-3);
+}
+
+.glass-card-title {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-2);
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .glass-hero-title {
+        font-size: 2rem;
+    }
+    
+    .glass-section-title {
+        font-size: var(--text-3xl);
+    }
+    
+    .glass-card {
+        padding: var(--space-3);
+    }
+}
+
+@media (max-width: 480px) {
+    .glass-hero-title {
+        font-size: 1.75rem;
+    }
+    
+    .glass-section-title {
+        font-size: var(--text-2xl);
+    }
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+.glass-text-center { text-align: center; }
+.glass-text-primary { color: var(--color-text-primary); }
+.glass-text-secondary { color: var(--color-text-secondary); }
+.glass-text-inverse { color: var(--color-text-inverse); }
+
+.glass-mt-0 { margin-top: 0; }
+.glass-mt-2 { margin-top: var(--space-2); }
+.glass-mt-4 { margin-top: var(--space-4); }
+.glass-mb-0 { margin-bottom: 0; }
+.glass-mb-2 { margin-bottom: var(--space-2); }
+.glass-mb-4 { margin-bottom: var(--space-4); }
+
+.glass-container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--space-container);
+}
+
+/* ============================================================================
+   ACCESSIBILITY - PREFER REDUCED MOTION
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .glass-btn-glow {
+        animation: none;
+    }
+}
+
