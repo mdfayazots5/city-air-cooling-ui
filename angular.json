@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "city-air-cooling-services": {
+    "coolzo": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -18,7 +18,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/city-air-cooling-services",
+            "outputPath": "dist/coolzo",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -26,17 +26,32 @@
             ],
             "tsConfig": "tsconfig.app.json",
             "assets": [
-              "src/favicon.ico",
-              "src/assets"
+              {
+                "glob": "favicon.ico",
+                "input": "src",
+                "output": "/"
+              },
+              {
+                "glob": "**/*",
+                "input": "src/assets",
+                "output": "/assets/"
+              }
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "src/styles/theme.scss"
             ],
             "scripts": []
           },
           "configurations": {
             "production": {
-"budgets": [
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
+              "budgets": [
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
@@ -62,10 +77,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "city-air-cooling-services:build:production"
+              "buildTarget": "coolzo:build:production"
             },
             "development": {
-              "buildTarget": "city-air-cooling-services:build:development"
+              "buildTarget": "coolzo:build:development"
             }
           },
           "defaultConfiguration": "development"

@@ -1,11 +1,11 @@
 
 --------------------------------------------------------------------------------
-Package: @angular/forms
+Package: @angular/core
 License: "MIT"
 
 
 --------------------------------------------------------------------------------
-Package: @angular/core
+Package: @angular/forms
 License: "MIT"
 
 

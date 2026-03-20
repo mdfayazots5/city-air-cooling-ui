@@ -1,7 +1,7 @@
 {
-  "name": "city-air-cooling-services",
+  "name": "coolzo",
   "version": "1.0.0",
-  "description": "City Air Cooling Services - AC Service Business Website",
+  "description": "Angular frontend",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

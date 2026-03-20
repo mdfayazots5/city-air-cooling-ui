@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["angular:styles/component:css;45755c4ff1e3c7a31f8ce121eea7eca734fceb5042235fe49cab7d85580850fa;C:/Live/City Air Cooling Services/Frontend/src/app/app.component.ts"],
-  "sourcesContent": ["\n    :host {\n      display: flex;\n      flex-direction: column;\n      min-height: 100vh;\n    }\n    \n    main {\n      flex: 1;\n      padding-top: 80px;\n    }\n    \n    app-header {\n      position: fixed;\n      top: 0;\n      left: 0;\n      right: 0;\n      z-index: 1000;\n    }\n    \n    app-footer {\n      margin-top: auto;\n    }\n  "],
-  "mappings": ";AACI;AACE,WAAS;AACT,kBAAgB;AAChB,cAAY;AACd;AAEA;AACE,QAAM;AACN,eAAa;AACf;AAEA;AACE,YAAU;AACV,OAAK;AACL,QAAM;AACN,SAAO;AACP,WAAS;AACX;AAEA;AACE,cAAY;AACd;",
-  "names": []
-}
