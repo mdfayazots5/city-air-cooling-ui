@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+﻿import { Component, Input } from '@angular/core';
 
 @Component({
   selector: 'app-status-badge',
@@ -30,48 +30,53 @@ import { Component, Input } from '@angular/core';
     
     /* Status variants */
     .status-badge.pending {
-      background: rgba(255, 149, 0, 0.12);
-      color: #ff9500;
+      background: var(--warning-tint);
+      color: var(--warning);
+    }
+
+    .status-badge.assigned,
+    .status-badge.confirmed {
+      background: var(--info-tint);
+      color: var(--primary);
     }
     
     .status-badge.in-progress,
     .status-badge.in_progress {
-      background: rgba(90, 200, 250, 0.12);
-      color: #5ac8fa;
+      background: var(--info-tint);
+      color: var(--info);
     }
     
     .status-badge.completed,
-    .status-badge.active,
-    .status-badge.completed- {
-      background: rgba(52, 199, 89, 0.12);
-      color: #34c759;
+    .status-badge.active {
+      background: var(--success-tint);
+      color: var(--success);
     }
     
     .status-badge.cancelled,
     .status-badge.rejected,
     .status-badge.inactive {
-      background: rgba(255, 59, 48, 0.12);
-      color: #ff3b30;
+      background: var(--danger-tint);
+      color: var(--danger);
     }
     
     .status-badge.pending-payment {
-      background: rgba(255, 149, 0, 0.12);
-      color: #ff9500;
+      background: var(--warning-tint);
+      color: var(--warning);
+    }
+
+    .status-badge.overdue {
+      background: var(--danger-tint);
+      color: var(--danger);
     }
     
     .status-badge.paid {
-      background: rgba(52, 199, 89, 0.12);
-      color: #34c759;
-    }
-    
-    .status-badge.confirmed {
-      background: rgba(0, 122, 255, 0.12);
-      color: #007aff;
+      background: var(--success-tint);
+      color: var(--success);
     }
     
     .status-badge.default {
-      background: rgba(142, 142, 147, 0.12);
-      color: #8e8e93;
+      background: var(--neutral-tint);
+      color: var(--text-muted);
     }
   `]
 })
@@ -82,8 +87,10 @@ export class StatusBadgeComponent {
   private statusMap: { [key: string]: string } = {
     // General
     'pending': 'pending',
+    'assigned': 'assigned',
     'in_progress': 'in-progress',
     'in-progress': 'in-progress',
+    'inprogress': 'in-progress',
     'completed': 'completed',
     'cancelled': 'cancelled',
     'rejected': 'cancelled',
@@ -95,6 +102,7 @@ export class StatusBadgeComponent {
     'pending_payment': 'pending-payment',
     'pending-payment': 'pending-payment',
     'paid': 'paid',
+    'overdue': 'overdue',
     
     // Service requests
     'confirmed': 'confirmed',
@@ -104,13 +112,28 @@ export class StatusBadgeComponent {
   };
 
   get label(): string {
-    if (!this.status) return 'Unknown';
-    return this.status.replace(/_/g, ' ').toLowerCase();
+    if (!this.status) {
+      return 'Unknown';
+    }
+
+    return this.normalizeStatus(this.status)
+      .replace(/-/g, ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, char => char.toUpperCase());
   }
 
   get statusClass(): string {
-    const key = this.status.toLowerCase();
+    const key = this.normalizeStatus(this.status);
     return this.statusMap[key] || 'default';
   }
+
+  private normalizeStatus(value: string): string {
+    return value
+      .replace(/([a-z])([A-Z])/g, '$1-$2')
+      .replace(/[_\s]+/g, '-')
+      .toLowerCase()
+      .trim();
+  }
 }
+
 

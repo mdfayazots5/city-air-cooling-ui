@@ -1,37 +1,26 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-
-import { HomeComponent } from './home/home.component';
-import { ServicesComponent } from './services/services.component';
-import { ContactComponent } from './contact/contact.component';
-import { AboutComponent } from './about/about.component';
-import { FaqComponent } from './faq/faq.component';
-import { ServiceAreasComponent } from './service-areas/service-areas.component';
+import { CustomerHomeComponent } from './customer-home/customer-home.component';
+import { PermissionGuard } from '../../core/guards';
 
 const routes: Routes = [
-  { path: '', component: HomeComponent },
-  { path: 'services', component: ServicesComponent },
-  { path: 'contact', component: ContactComponent },
-  { path: 'about', component: AboutComponent },
-  { path: 'faq', component: FaqComponent },
-  { path: 'service-areas', component: ServiceAreasComponent }
+  { path: '', component: CustomerHomeComponent, canActivate: [PermissionGuard], data: { requiresAuth: true } },
+  { path: 'customer-home', component: CustomerHomeComponent, canActivate: [PermissionGuard], data: { requiresAuth: true } },
+  { path: 'services', component: CustomerHomeComponent, canActivate: [PermissionGuard], data: { requiresAuth: true, focusTitle: 'Services', focusRoute: '/services' } },
+  { path: 'contact', component: CustomerHomeComponent, canActivate: [PermissionGuard], data: { requiresAuth: true, focusTitle: 'Contact Support', focusRoute: '/contact' } },
+  { path: 'about', component: CustomerHomeComponent, canActivate: [PermissionGuard], data: { requiresAuth: true, focusTitle: 'About Us', focusRoute: '/about' } },
+  { path: 'faq', component: CustomerHomeComponent, canActivate: [PermissionGuard], data: { requiresAuth: true, focusTitle: 'FAQ', focusRoute: '/faq' } },
+  { path: 'service-areas', component: CustomerHomeComponent, canActivate: [PermissionGuard], data: { requiresAuth: true, focusTitle: 'Service Areas', focusRoute: '/service-areas' } },
+  { path: '**', component: CustomerHomeComponent, canActivate: [PermissionGuard], data: { requiresAuth: true } }
 ];
 
 @NgModule({
   declarations: [
-    HomeComponent,
-    ServicesComponent,
-    ContactComponent,
-    AboutComponent,
-    FaqComponent,
-    ServiceAreasComponent
+    CustomerHomeComponent
   ],
   imports: [
     CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
     RouterModule.forChild(routes)
   ]
 })

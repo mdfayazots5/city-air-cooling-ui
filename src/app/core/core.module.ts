@@ -1,11 +1,12 @@
 import { NgModule, Optional, SkipSelf } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClientModule } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 
 import { ConfigService } from './services/config.service';
 import { ApiService } from './services/api.service';
 import { EventTrackingService } from './services/event-tracking.service';
 import { LocationService } from './services/location.service';
+import { AuthInterceptor, ErrorInterceptor } from './interceptors';
 
 @NgModule({
   imports: [
@@ -16,7 +17,17 @@ import { LocationService } from './services/location.service';
     ConfigService,
     ApiService,
     EventTrackingService,
-    LocationService
+    LocationService,
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true
+    },
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: ErrorInterceptor,
+      multi: true
+    }
   ]
 })
 export class CoreModule {

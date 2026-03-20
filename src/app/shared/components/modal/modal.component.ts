@@ -1,13 +1,13 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+﻿import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 @Component({
   selector: 'app-modal',
   template: `
     <div class="modal-overlay" *ngIf="isOpen" (click)="onCloseClick($event)">
-      <div class="modal-container" [class]="sizeClass">
+      <div class="modal-container" [ngClass]="sizeClass">
         <div class="modal-header">
           <h3 class="modal-title">{{ title }}</h3>
-          <button class="close-btn" (click)="close()">&times;</button>
+          <button type="button" class="close-btn" (click)="close()">&times;</button>
         </div>
         
         <div class="modal-body">
@@ -15,8 +15,8 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
         </div>
         
         <div class="modal-footer" *ngIf="showFooter">
-          <button class="btn btn-secondary" (click)="close()">{{ cancelText }}</button>
-          <button class="btn btn-primary" (click)="confirm()">{{ confirmText }}</button>
+          <button type="button" class="btn btn-secondary" (click)="close()">{{ cancelText }}</button>
+          <button type="button" class="btn btn-primary" (click)="confirm()">{{ confirmText }}</button>
         </div>
       </div>
     </div>
@@ -28,7 +28,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.5);
+      background: var(--overlay-dark);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -42,9 +42,9 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
     }
     
     .modal-container {
-      background: #fff;
+      background: var(--surface-solid);
       border-radius: 8px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--shadow-lg);
       max-height: 90vh;
       display: flex;
       flex-direction: column;
@@ -66,27 +66,27 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
       justify-content: space-between;
       align-items: center;
       padding: 16px 20px;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-subtle);
     }
     
     .modal-title {
       margin: 0;
       font-size: 18px;
       font-weight: 600;
-      color: #333;
+      color: var(--text-dark);
     }
     
     .close-btn {
       background: none;
       border: none;
       font-size: 24px;
-      color: #999;
+      color: var(--text-muted);
       cursor: pointer;
       line-height: 1;
     }
     
     .close-btn:hover {
-      color: #333;
+      color: var(--text-dark);
     }
     
     .modal-body {
@@ -100,7 +100,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
       justify-content: flex-end;
       gap: 12px;
       padding: 16px 20px;
-      border-top: 1px solid #eee;
+      border-top: 1px solid var(--border-subtle);
     }
     
     .btn {
@@ -114,21 +114,21 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
     }
     
     .btn-secondary {
-      background: #f0f0f0;
-      color: #333;
+      background: var(--surface-muted);
+      color: var(--text-dark);
     }
     
     .btn-secondary:hover {
-      background: #e0e0e0;
+      background: var(--surface-muted-strong);
     }
     
     .btn-primary {
-      background: #00d4ff;
-      color: #fff;
+      background: var(--primary);
+      color: var(--text-light);
     }
     
     .btn-primary:hover {
-      background: #00b8e6;
+      background: var(--primary-strong);
     }
   `]
 })
@@ -161,4 +161,5 @@ export class ModalComponent {
     this.confirmEvent.emit();
   }
 }
+
 

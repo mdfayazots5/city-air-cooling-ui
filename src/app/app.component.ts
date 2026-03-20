@@ -1,40 +1,57 @@
 import { Component } from '@angular/core';
+import { Meta, Title } from '@angular/platform-browser';
+import { ConfigService } from './core/services/config.service';
+import { RouteScrollService } from './core/services/route-scroll.service';
 
 @Component({
   selector: 'app-root',
   template: `
-    <app-header></app-header>
-    <main>
+    <div *ngIf="configError; else appShell" class="app-fallback">
+      <div class="inline-error-state">
+        <strong>Something went wrong.</strong>
+        <div>{{ configError }}</div>
+      </div>
+    </div>
+
+    <ng-template #appShell>
       <router-outlet></router-outlet>
-    </main>
-    <app-footer></app-footer>
+    </ng-template>
   `,
   styles: [`
     :host {
+      display: block;
+    }
+
+    .app-fallback {
+      align-items: center;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       min-height: 100vh;
-    }
-    
-    main {
-      flex: 1;
-      padding-top: 80px;
-    }
-    
-    app-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-    }
-    
-    app-footer {
-      margin-top: auto;
+      padding: 1.5rem;
     }
   `]
 })
 export class AppComponent {
-  title = 'City Air Cooling Services';
-}
+  configError = '';
 
+  constructor(
+    private readonly title: Title,
+    private readonly meta: Meta,
+    private readonly configService: ConfigService,
+    private readonly routeScrollService: RouteScrollService
+  ) {
+    void this.routeScrollService;
+
+    this.configService.configLoadError$.subscribe(error => {
+      this.configError = error;
+    });
+
+    this.configService.config$.subscribe(config => {
+      this.title.setTitle(config.seo.defaultTitle);
+      this.meta.updateTag({ name: 'description', content: config.seo.defaultDescription });
+      this.meta.updateTag({ property: 'og:title', content: config.seo.defaultTitle });
+      this.meta.updateTag({ property: 'og:description', content: config.seo.defaultDescription });
+      this.meta.updateTag({ property: 'og:site_name', content: config.brand.name });
+    });
+  }
+}

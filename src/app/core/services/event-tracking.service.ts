@@ -1,8 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Router, NavigationEnd } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
-import { LocationService } from './location.service';
+import { environment } from '../../../environments/environment';
+import { EventType } from '../models';
 import { ApiService } from './api.service';
+import { LocationService } from './location.service';
 
 export interface UserEvent {
   eventType: EventType;
@@ -15,20 +17,11 @@ export interface UserEvent {
   userAgent?: string;
 }
 
-export type EventType = 
-  | 'CallButtonClicked'
-  | 'WhatsAppClicked'
-  | 'BookingFormOpened'
-  | 'BookingSubmitted'
-  | 'PageViewed'
-  | 'ContactFormOpened'
-  | 'ContactFormSubmitted';
-
 @Injectable({
   providedIn: 'root'
 })
 export class EventTrackingService {
-  private currentPageUrl: string = '';
+  private currentPageUrl = '';
 
   constructor(
     private router: Router,
@@ -40,122 +33,100 @@ export class EventTrackingService {
 
   private initPageTracking(): void {
     this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: any) => {
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
       this.currentPageUrl = event.urlAfterRedirects;
-      this.trackPageView();
+      this.schedulePageView();
     });
   }
 
-  private async trackPageView(): Promise<void> {
-    const location = await this.locationService.getLocation();
-    
-    const event: UserEvent = {
-      eventType: 'PageViewed',
-      pageUrl: this.currentPageUrl,
-      latitude: location?.latitude,
-      longitude: location?.longitude,
-      userAgent: navigator.userAgent
-    };
+  private schedulePageView(): void {
+    if (typeof window === 'undefined') {
+      void this.trackPageView();
+      return;
+    }
 
-    this.sendEvent(event);
+    window.setTimeout(() => {
+      void this.trackPageView();
+    }, 1500);
+  }
+
+  private async trackPageView(): Promise<void> {
+    this.sendEvent({
+      eventType: EventType.PageViewed,
+      pageUrl: this.currentPageUrl,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+    });
   }
 
   async trackCallButton(buttonName: string = 'Call Now'): Promise<void> {
     const location = await this.locationService.getLocation();
-    
-    const event: UserEvent = {
-      eventType: 'CallButtonClicked',
+
+    this.sendEvent({
+      eventType: EventType.CallClicked,
       pageUrl: this.currentPageUrl,
-      buttonName: buttonName,
+      buttonName,
       latitude: location?.latitude,
       longitude: location?.longitude,
-      userAgent: navigator.userAgent
-    };
-
-    this.sendEvent(event);
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+    });
   }
 
   async trackWhatsAppClick(buttonName: string = 'WhatsApp'): Promise<void> {
     const location = await this.locationService.getLocation();
-    
-    const event: UserEvent = {
-      eventType: 'WhatsAppClicked',
+
+    this.sendEvent({
+      eventType: EventType.WhatsAppClicked,
       pageUrl: this.currentPageUrl,
-      buttonName: buttonName,
+      buttonName,
       latitude: location?.latitude,
       longitude: location?.longitude,
-      userAgent: navigator.userAgent
-    };
-
-    this.sendEvent(event);
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+    });
   }
 
   async trackBookingFormOpened(): Promise<void> {
-    const location = await this.locationService.getLocation();
-    
-    const event: UserEvent = {
-      eventType: 'BookingFormOpened',
+    this.sendEvent({
+      eventType: EventType.BookingStarted,
       pageUrl: this.currentPageUrl,
-      latitude: location?.latitude,
-      longitude: location?.longitude,
-      userAgent: navigator.userAgent
-    };
-
-    this.sendEvent(event);
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+    });
   }
 
-  async trackBookingSubmitted(bookingData: any): Promise<void> {
+  async trackBookingSubmitted(_bookingData: unknown): Promise<void> {
     const location = await this.locationService.getLocation();
-    
-    const event: UserEvent = {
-      eventType: 'BookingSubmitted',
+
+    this.sendEvent({
+      eventType: EventType.BookingCompleted,
       pageUrl: this.currentPageUrl,
       latitude: location?.latitude,
       longitude: location?.longitude,
-      userAgent: navigator.userAgent
-    };
-
-    this.sendEvent(event);
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined
+    });
   }
 
   async trackContactFormOpened(): Promise<void> {
-    const location = await this.locationService.getLocation();
-    
-    const event: UserEvent = {
-      eventType: 'ContactFormOpened',
-      pageUrl: this.currentPageUrl,
-      latitude: location?.latitude,
-      longitude: location?.longitude,
-      userAgent: navigator.userAgent
-    };
-
-    this.sendEvent(event);
+    return Promise.resolve();
   }
 
   async trackContactFormSubmitted(): Promise<void> {
-    const location = await this.locationService.getLocation();
-    
-    const event: UserEvent = {
-      eventType: 'ContactFormSubmitted',
-      pageUrl: this.currentPageUrl,
-      latitude: location?.latitude,
-      longitude: location?.longitude,
-      userAgent: navigator.userAgent
-    };
-
-    this.sendEvent(event);
+    return Promise.resolve();
   }
 
   private sendEvent(event: UserEvent): void {
-    // Log to console in development
-    console.log('📊 Event Tracked:', event);
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return;
+    }
 
-    // Send to API (non-blocking)
+    if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      const payload = new Blob([JSON.stringify(event)], { type: 'application/json' });
+      if (navigator.sendBeacon(`${environment.apiUrl}/events/track`, payload)) {
+        return;
+      }
+    }
+
     this.apiService.trackEvent(event).subscribe({
-      next: () => console.log('Event sent to server'),
-      error: (err) => console.warn('Failed to send event:', err)
+      error: () => void event
     });
   }
 }
-

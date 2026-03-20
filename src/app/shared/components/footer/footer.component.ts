@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Component } from '@angular/core';
+import { BrandConfig, BusinessInfo, Service, ServiceArea } from '../../../core/models';
 import { ConfigService } from '../../../core/services/config.service';
-import { BusinessInfo, ServiceArea } from '../../../core/models';
 
 @Component({
   selector: 'app-footer',
@@ -10,14 +9,15 @@ import { BusinessInfo, ServiceArea } from '../../../core/models';
       <div class="container">
         <div class="footer-content">
           <div class="footer-section">
-            <h3>{{ business.name }}</h3>
-            <p>Your trusted AC service partner in Hyderabad</p>
+            <h3>{{ brand.name }}</h3>
+            <p>{{ brand.tagline }}</p>
             <div class="contact-info">
-              <p><strong>Phone:</strong> <a [href]="callUrl">{{ business.phone }}</a></p>
-              <p><strong>Email:</strong> <a [href]="'mailto:' + business.email">{{ business.email }}</a></p>
+              <p><strong>Phone:</strong> <a [href]="callUrl" [attr.aria-label]="footerPhoneLabel">{{ footerPhoneLabel }}</a></p>
+              <p><strong>Email:</strong> <a [href]="emailUrl" [attr.aria-label]="footerEmailLabel">{{ footerEmailLabel }}</a></p>
             </div>
+            <a routerLink="/booking" [queryParams]="selectedCity ? { city: selectedCity } : null" class="cta-primary footer-cta">Book Service</a>
           </div>
-          
+
           <div class="footer-section">
             <h4>Quick Links</h4>
             <ul>
@@ -25,116 +25,147 @@ import { BusinessInfo, ServiceArea } from '../../../core/models';
               <li><a routerLink="/services">Services</a></li>
               <li><a routerLink="/service-areas">Service Areas</a></li>
               <li><a routerLink="/about">About</a></li>
+              <li><a routerLink="/faq">FAQ</a></li>
               <li><a routerLink="/contact">Contact</a></li>
             </ul>
           </div>
-          
+
           <div class="footer-section">
             <h4>Our Services</h4>
             <ul>
-              <li><a routerLink="/services">AC Repair</a></li>
-              <li><a routerLink="/services">AC Installation</a></li>
-              <li><a routerLink="/services">AC Maintenance</a></li>
-              <li><a routerLink="/services">Gas Refilling</a></li>
-              <li><a routerLink="/services">AMC</a></li>
+              <li *ngFor="let service of services.slice(0, 5)">
+                <a [routerLink]="['/booking']" [queryParams]="bookingQueryParams(service.id)">{{ service.name }}</a>
+              </li>
+              <li *ngIf="services.length === 0"><a routerLink="/booking" [queryParams]="selectedCity ? { city: selectedCity } : null">Book Service</a></li>
             </ul>
           </div>
-          
+
           <div class="footer-section">
             <h4>Service Areas</h4>
             <ul>
               <li *ngFor="let area of serviceAreas.slice(0, 6)">
-                <a [routerLink]="['/service-areas']" [queryParams]="{area: area.name}">{{ area.name }}</a>
+                <a [routerLink]="['/service-areas']" [queryParams]="{ area: area.name }">{{ area.name }}</a>
               </li>
+              <li *ngIf="serviceAreas.length === 0"><a routerLink="/service-areas">View Coverage</a></li>
             </ul>
           </div>
         </div>
-        
+
         <div class="footer-bottom">
-          <p>&copy; {{ currentYear }} {{ business.name }}. All rights reserved.</p>
+          <p>&copy; {{ currentYear }} {{ brand.name }}. All rights reserved.</p>
         </div>
       </div>
     </footer>
   `,
   styles: [`
     .footer {
-      background: #1a1a2e;
-      color: white;
+      background: var(--footer-bg);
+      color: var(--text-light);
       padding: 3rem 0 1rem;
     }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 2rem;
-    }
-    
+
     .footer-content {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 2rem;
       margin-bottom: 2rem;
     }
-    
+
     .footer-section h3 {
-      color: #1a73e8;
+      color: var(--text-light);
       margin-bottom: 0.5rem;
     }
-    
+
     .footer-section h4 {
-      color: #fff;
+      color: var(--text-light);
       margin-bottom: 1rem;
     }
-    
+
     .footer-section ul {
       list-style: none;
       padding: 0;
       margin: 0;
     }
-    
+
     .footer-section ul li {
       margin-bottom: 0.5rem;
     }
-    
+
     .footer-section a {
-      color: #ccc;
-      text-decoration: none;
+      color: var(--footer-text-muted);
       transition: color 0.3s;
     }
-    
+
     .footer-section a:hover {
-      color: #1a73e8;
+      color: var(--text-light);
     }
-    
+
     .contact-info p {
       margin: 0.3rem 0;
-      color: #ccc;
+      color: var(--footer-text-muted);
     }
-    
+
     .contact-info a {
-      color: #1a73e8;
+      color: var(--text-light);
     }
-    
+
+    .footer-cta {
+      color: #ffffff !important;
+      margin-top: 0.5rem;
+    }
+
     .footer-bottom {
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid var(--footer-border);
       padding-top: 1rem;
       text-align: center;
-      color: #888;
+      color: var(--footer-text-soft);
     }
   `]
 })
-export class FooterComponent implements OnInit {
-  business!: BusinessInfo;
-  serviceAreas: ServiceArea[] = [];
-  callUrl: string = '';
-  currentYear: number = new Date().getFullYear();
+export class FooterComponent {
+  currentYear = new Date().getFullYear();
 
   constructor(private configService: ConfigService) {}
 
-  ngOnInit(): void {
-    this.business = this.configService.business;
-    this.serviceAreas = this.configService.serviceAreas;
-    this.callUrl = this.configService.getCallUrl();
+  get brand(): BrandConfig {
+    return this.configService.brand;
+  }
+
+  get business(): BusinessInfo {
+    return this.configService.business;
+  }
+
+  get services(): Service[] {
+    return this.configService.services;
+  }
+
+  get serviceAreas(): ServiceArea[] {
+    return this.configService.serviceAreas;
+  }
+
+  get callUrl(): string {
+    return this.configService.getCallUrl();
+  }
+
+  get selectedCity(): string {
+    return this.configService.selectedCity;
+  }
+
+  bookingQueryParams(serviceId: string): { service: string; city?: string } {
+    return this.selectedCity
+      ? { service: serviceId, city: this.selectedCity }
+      : { service: serviceId };
+  }
+
+  get emailUrl(): string {
+    return this.business.email ? `mailto:${this.business.email}` : '#';
+  }
+
+  get footerPhoneLabel(): string {
+    return this.business.phone || 'Call our team';
+  }
+
+  get footerEmailLabel(): string {
+    return this.business.email || 'Email our team';
   }
 }
-

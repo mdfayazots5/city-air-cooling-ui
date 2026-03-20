@@ -1,30 +1,52 @@
-import { Component, OnInit, HostListener } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Component, HostListener } from '@angular/core';
+import { BrandConfig, BusinessInfo } from '../../../core/models';
 import { ConfigService } from '../../../core/services/config.service';
-import { BusinessInfo } from '../../../core/models';
+import { EventTrackingService } from '../../../core/services/event-tracking.service';
 
 @Component({
   selector: 'app-header',
   template: `
     <header class="header" [class.scrolled]="isScrolled">
-      <div class="container">
-        <div class="logo">
-          <a routerLink="/">
-            <h1>{{ business.name }}</h1>
-          </a>
+      <div class="container header-bar">
+        <a class="brand" routerLink="/" [attr.aria-label]="brand.name + ' home'" (click)="closeMobileMenu()">
+          <span class="brand-mark">{{ brand.name.slice(0, 1) }}</span>
+          <span class="brand-copy">
+            <strong>{{ brand.name }}</strong>
+            <small>{{ brand.tagline }}</small>
+          </span>
+        </a>
+
+        <div class="mobile-controls">
+          <a routerLink="/booking" [queryParams]="{ city: selectedCity }" class="mobile-book-cta cta-primary" (click)="closeMobileMenu()">Book Now</a>
+
+          <button class="menu-toggle" type="button" (click)="toggleMobileMenu()">
+            {{ mobileMenuOpen ? 'Close' : 'Menu' }}
+          </button>
         </div>
-        <nav class="navigation">
-          <ul>
-            <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Home</a></li>
-            <li><a routerLink="/services" routerLinkActive="active">Services</a></li>
-            <li><a routerLink="/service-areas" routerLinkActive="active">Service Areas</a></li>
-            <li><a routerLink="/about" routerLinkActive="active">About</a></li>
-            <li><a routerLink="/contact" routerLinkActive="active">Contact</a></li>
-          </ul>
-        </nav>
-        <div class="header-actions">
-          <a [href]="callUrl" class="btn-call" (click)="onCallClick()">Call Now</a>
-          <a [href]="whatsAppUrl" class="btn-whatsapp" target="_blank" (click)="onWhatsAppClick()">WhatsApp</a>
+
+        <div class="nav-shell" [class.open]="mobileMenuOpen">
+          <nav class="navigation">
+            <ul>
+              <li><a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" (click)="closeMobileMenu()">Home</a></li>
+              <li><a routerLink="/services" routerLinkActive="active" (click)="closeMobileMenu()">Services</a></li>
+              <li><a routerLink="/service-areas" routerLinkActive="active" (click)="closeMobileMenu()">Service Areas</a></li>
+              <li><a routerLink="/about" routerLinkActive="active" (click)="closeMobileMenu()">About</a></li>
+              <li><a routerLink="/faq" routerLinkActive="active" (click)="closeMobileMenu()">FAQ</a></li>
+              <li><a routerLink="/contact" routerLinkActive="active" (click)="closeMobileMenu()">Contact</a></li>
+            </ul>
+          </nav>
+
+          <div class="header-actions">
+            <div class="city-selector" *ngIf="availableCities.length > 0">
+              <label for="header-city" class="sr-only">Choose city</label>
+              <select id="header-city" [ngModel]="selectedCity" (ngModelChange)="onCityChange($event)">
+                <option *ngFor="let city of availableCities" [ngValue]="city">{{ city }}</option>
+              </select>
+            </div>
+            <a [href]="callUrl" class="quick-action" (click)="onCallClick()">Call</a>
+            <a [href]="whatsAppUrl" class="quick-action quick-action--whatsapp" target="_blank" rel="noopener" (click)="onWhatsAppClick()">WhatsApp</a>
+            <a routerLink="/booking" [queryParams]="{ city: selectedCity }" class="cta-primary" (click)="closeMobileMenu()">Book Now</a>
+          </div>
         </div>
       </div>
     </header>
@@ -36,36 +58,93 @@ import { BusinessInfo } from '../../../core/models';
       left: 0;
       right: 0;
       z-index: 1000;
-      background: rgba(255, 255, 255, 0.95);
+      background: var(--header-bg);
       backdrop-filter: blur(10px);
       transition: all 0.3s ease;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      border-bottom: 1px solid var(--header-border);
+      box-shadow: var(--shadow-sm);
     }
-    
+
     .header.scrolled {
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--shadow-md);
     }
-    
-    .header .container {
+
+    .header-bar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1rem 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
+      gap: 1.5rem;
+      min-height: var(--header-height);
     }
-    
-    .logo a {
-      text-decoration: none;
-      color: #1a73e8;
+
+    .brand {
+      align-items: center;
+      display: inline-flex;
+      gap: 0.8rem;
+      min-width: 0;
     }
-    
-    .logo h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin: 0;
+
+    .brand-mark {
+      align-items: center;
+      background: var(--surface-hero);
+      border-radius: 1rem;
+      color: var(--text-light);
+      display: inline-flex;
+      font-size: 1.05rem;
+      font-weight: 800;
+      height: 2.5rem;
+      justify-content: center;
+      width: 2.5rem;
     }
-    
+
+    .brand-copy {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .brand-copy strong {
+      color: var(--text-dark);
+      font-size: 1.05rem;
+      line-height: 1.2;
+    }
+
+    .brand-copy small {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .menu-toggle {
+      display: none;
+      border: 1px solid var(--border-subtle);
+      color: var(--primary);
+      border-radius: 999px;
+      padding: 0.5rem 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .mobile-controls {
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .mobile-book-cta {
+      display: none;
+      min-height: 44px;
+      padding: 0.75rem 1rem;
+      white-space: nowrap;
+    }
+
+    .nav-shell {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
     .navigation ul {
       display: flex;
       list-style: none;
@@ -73,77 +152,167 @@ import { BusinessInfo } from '../../../core/models';
       padding: 0;
       gap: 2rem;
     }
-    
+
     .navigation a {
-      text-decoration: none;
-      color: #333;
+      color: var(--text-body);
       font-weight: 500;
-      transition: color 0.3s;
+      transition: color 0.3s, opacity 0.3s;
     }
-    
+
     .navigation a:hover,
     .navigation a.active {
-      color: #1a73e8;
+      color: var(--primary);
     }
-    
+
     .header-actions {
       display: flex;
+      align-items: center;
       gap: 1rem;
     }
-    
-    .btn-call,
-    .btn-whatsapp {
-      padding: 0.5rem 1rem;
-      border-radius: 5px;
-      text-decoration: none;
+
+    .city-selector select {
+      background: var(--surface-solid);
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+      color: var(--text-body);
       font-weight: 600;
-      transition: all 0.3s;
+      min-height: 42px;
+      padding: 0.55rem 0.95rem;
     }
-    
-    .btn-call {
-      background: #1a73e8;
-      color: white;
+
+    .quick-action {
+      color: var(--text-body);
+      font-weight: 600;
+      white-space: nowrap;
     }
-    
-    .btn-call:hover {
-      background: #1557b0;
+
+    .quick-action--whatsapp {
+      color: var(--whatsapp);
     }
-    
-    .btn-whatsapp {
-      background: #25d366;
-      color: white;
+
+    .quick-action:hover {
+      color: var(--primary);
     }
-    
-    .btn-whatsapp:hover {
-      background: #1da851;
+
+    .sr-only {
+      border: 0;
+      clip: rect(0 0 0 0);
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      padding: 0;
+      position: absolute;
+      width: 1px;
+    }
+
+    @media (max-width: 900px) {
+      .menu-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+      }
+
+      .mobile-controls {
+        display: flex;
+      }
+
+      .mobile-book-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .nav-shell {
+        display: none;
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        padding-top: 0.5rem;
+      }
+
+      .nav-shell.open {
+        display: flex;
+      }
+
+      .navigation ul {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .header-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .city-selector select,
+      .quick-action,
+      .cta-primary {
+        text-align: center;
+        width: 100%;
+      }
     }
   `]
 })
-export class HeaderComponent implements OnInit {
-  business!: BusinessInfo;
+export class HeaderComponent {
   isScrolled = false;
-  callUrl: string = '';
-  whatsAppUrl: string = '';
+  mobileMenuOpen = false;
 
-  constructor(private configService: ConfigService) {}
+  constructor(
+    private configService: ConfigService,
+    private eventTrackingService: EventTrackingService
+  ) {}
 
-  ngOnInit(): void {
-    this.business = this.configService.business;
-    this.callUrl = this.configService.getCallUrl();
-    this.whatsAppUrl = this.configService.getWhatsAppUrl();
+  get brand(): BrandConfig {
+    return this.configService.brand;
+  }
+
+  get business(): BusinessInfo {
+    return this.configService.business;
+  }
+
+  get availableCities(): string[] {
+    return this.configService.availableCities;
+  }
+
+  get selectedCity(): string {
+    return this.configService.selectedCity;
+  }
+
+  get callUrl(): string {
+    return this.configService.getCallUrl();
+  }
+
+  get whatsAppUrl(): string {
+    const cityMessage = this.selectedCity
+      ? `Hello, I need AC service in ${this.selectedCity}.`
+      : undefined;
+
+    return this.configService.getWhatsAppUrl(cityMessage);
   }
 
   @HostListener('window:scroll')
   onScroll(): void {
-    this.isScrolled = window.scrollY > 100;
+    this.isScrolled = typeof window !== 'undefined' && window.scrollY > 100;
+  }
+
+  onCityChange(city: string): void {
+    this.configService.setSelectedCity(city);
+  }
+
+  toggleMobileMenu(): void {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+  }
+
+  closeMobileMenu(): void {
+    this.mobileMenuOpen = false;
   }
 
   onCallClick(): void {
-    console.log('Call button clicked');
+    void this.eventTrackingService.trackCallButton('Header Call');
   }
 
   onWhatsAppClick(): void {
-    console.log('WhatsApp clicked');
+    void this.eventTrackingService.trackWhatsAppClick('Header WhatsApp');
   }
 }
-

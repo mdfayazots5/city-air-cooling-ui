@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+﻿import { Component, Input } from '@angular/core';
 
 @Component({
   selector: 'app-loading',
@@ -23,7 +23,7 @@ import { Component, Input } from '@angular/core';
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(255, 255, 255, 0.9);
+      background: var(--header-bg);
       z-index: 9999;
     }
     
@@ -41,8 +41,8 @@ import { Component, Input } from '@angular/core';
     .spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid var(--color-border-light, #e5e5ea);
-      border-top-color: var(--color-primary, #007aff);
+      border: 3px solid var(--border-subtle);
+      border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
@@ -52,7 +52,7 @@ import { Component, Input } from '@angular/core';
     }
     
     .loading-message {
-      color: var(--color-text-secondary, #6e6e73);
+      color: var(--text-muted);
       font-size: 14px;
       margin: 0;
     }
@@ -62,4 +62,5 @@ export class LoadingComponent {
   @Input() message?: string;
   @Input() overlay: boolean = false;
 }
+
 

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+﻿import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 export interface TableColumn {
   key: string;
@@ -15,6 +15,8 @@ export interface TableAction {
   color?: string;
 }
 
+type TableRow = Record<string, unknown>;
+
 @Component({
   selector: 'app-table',
   template: `
@@ -22,36 +24,41 @@ export interface TableAction {
       <table class="data-table">
         <thead>
           <tr>
-            <th *ngFor="let col of columns" 
-                [style.width]="col.width"
-                [class.sortable]="col.sortable"
-                (click)="col.sortable && onSort(col.key)">
+            <th
+              *ngFor="let col of columns"
+              [style.width]="col.width"
+              [class.sortable]="col.sortable"
+              (click)="col.sortable && onSort(col.key)">
               {{ col.label }}
               <span *ngIf="col.sortable && sortKey === col.key" class="sort-icon">
-                {{ sortDirection === 'asc' ? '↑' : '↓' }}
+                {{ sortDirection === 'asc' ? '^' : 'v' }}
               </span>
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of data; let i = index" 
-              [class.selected]="selectedRow === i"
-              (click)="onRowClick(row, i)">
+          <tr
+            *ngFor="let row of data; let i = index"
+            [class.selected]="selectedRow === i"
+            (click)="onRowClick(row, i)">
             <td *ngFor="let col of columns">
               <ng-container [ngSwitch]="col.type">
-                <span *ngSwitchCase="'date'">{{ row[col.key] | date:'mediumDate' }}</span>
-                <span *ngSwitchCase="'currency'">{{ row[col.key] | currency:'INR' }}</span>
+                <span *ngSwitchCase="'date'">{{ $any(row[col.key]) | date:'mediumDate' }}</span>
+                <span *ngSwitchCase="'currency'">{{ $any(row[col.key]) | currency:'INR' }}</span>
                 <span *ngSwitchCase="'boolean'">
-                  <span class="badge" [class.active]="row[col.key]" [class.inactive]="!row[col.key]">
+                  <span class="badge" [class.active]="!!row[col.key]" [class.inactive]="!row[col.key]">
                     {{ row[col.key] ? 'Yes' : 'No' }}
                   </span>
                 </span>
                 <span *ngSwitchCase="'actions'" class="actions">
-                  <button *ngFor="let action of actions" 
-                          class="action-btn"
-                          [class]="action.action"
-                          [title]="action.label"
-                          (click)="onAction(action.action, row); $event.stopPropagation()">
+                  <button
+                    *ngFor="let action of actions"
+                    type="button"
+                    class="action-btn"
+                    [ngClass]="action.action"
+                    [style.color]="action.color || null"
+                    [title]="action.label"
+                    (click)="onAction(action.action, row); $event.stopPropagation()">
                     {{ action.icon }}
                   </button>
                 </span>
@@ -60,26 +67,30 @@ export interface TableAction {
             </td>
           </tr>
           <tr *ngIf="data.length === 0">
-            <td [attr.colspan]="columns.length" class="no-data">
+            <td [attr.colspan]="columns.length || 1" class="no-data">
               No data available
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    
+
     <div class="pagination" *ngIf="totalPages > 1">
-      <button class="page-btn" 
-              [disabled]="currentPage === 1"
-              (click)="onPageChange(currentPage - 1)">
+      <button
+        type="button"
+        class="page-btn"
+        [disabled]="currentPage === 1"
+        (click)="onPageChange(currentPage - 1)">
         Previous
       </button>
       <span class="page-info">
         Page {{ currentPage }} of {{ totalPages }}
       </span>
-      <button class="page-btn"
-              [disabled]="currentPage === totalPages"
-              (click)="onPageChange(currentPage + 1)">
+      <button
+        type="button"
+        class="page-btn"
+        [disabled]="currentPage === totalPages"
+        (click)="onPageChange(currentPage + 1)">
         Next
       </button>
     </div>
@@ -87,73 +98,74 @@ export interface TableAction {
   styles: [`
     .table-container {
       overflow-x: auto;
-      background: #fff;
+      background: var(--surface-solid);
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow-sm);
     }
-    
+
     .data-table {
       width: 100%;
       border-collapse: collapse;
     }
-    
-    .data-table th, .data-table td {
+
+    .data-table th,
+    .data-table td {
       padding: 12px 16px;
       text-align: left;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid var(--border-subtle);
     }
-    
+
     .data-table th {
-      background: #f8f9fa;
+      background: var(--surface-muted);
       font-weight: 600;
-      color: #333;
+      color: var(--text-dark);
       font-size: 14px;
     }
-    
+
     .data-table th.sortable {
       cursor: pointer;
       user-select: none;
     }
-    
+
     .data-table th.sortable:hover {
-      background: #e9ecef;
+      background: var(--surface-muted-strong);
     }
-    
+
     .sort-icon {
       margin-left: 4px;
-      color: #00d4ff;
+      color: var(--primary);
     }
-    
+
     .data-table tr:hover {
-      background: #f8f9fa;
+      background: var(--surface-muted);
     }
-    
+
     .data-table tr.selected {
-      background: rgba(0, 212, 255, 0.1);
+      background: var(--primary-tint-soft);
     }
-    
+
     .badge {
       padding: 4px 8px;
       border-radius: 4px;
       font-size: 12px;
       font-weight: 500;
     }
-    
+
     .badge.active {
-      background: #d4edda;
-      color: #155724;
+      background: var(--success-soft);
+      color: var(--success);
     }
-    
+
     .badge.inactive {
-      background: #f8d7da;
-      color: #721c24;
+      background: var(--danger-soft);
+      color: var(--danger);
     }
-    
+
     .actions {
       display: flex;
       gap: 8px;
     }
-    
+
     .action-btn {
       background: none;
       border: none;
@@ -162,21 +174,29 @@ export interface TableAction {
       border-radius: 4px;
       transition: background 0.2s;
     }
-    
+
     .action-btn:hover {
-      background: #eee;
+      background: var(--surface-muted);
     }
-    
-    .action-btn.edit { color: #007bff; }
-    .action-btn.delete { color: #dc3545; }
-    .action-btn.view { color: #28a745; }
-    
+
+    .action-btn.edit {
+      color: var(--primary);
+    }
+
+    .action-btn.delete {
+      color: var(--danger);
+    }
+
+    .action-btn.view {
+      color: var(--success);
+    }
+
     .no-data {
       text-align: center;
-      color: #999;
+      color: var(--text-muted);
       padding: 40px !important;
     }
-    
+
     .pagination {
       display: flex;
       justify-content: center;
@@ -184,57 +204,58 @@ export interface TableAction {
       padding: 16px;
       gap: 16px;
     }
-    
+
     .page-btn {
       padding: 8px 16px;
-      border: 1px solid #ddd;
-      background: #fff;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-solid);
       border-radius: 4px;
       cursor: pointer;
     }
-    
+
     .page-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    
+
     .page-btn:hover:not(:disabled) {
-      background: #f8f9fa;
+      background: var(--surface-muted);
     }
-    
+
     .page-info {
-      color: #666;
+      color: var(--text-muted);
       font-size: 14px;
     }
   `]
 })
 export class TableComponent {
   @Input() columns: TableColumn[] = [];
-  @Input() data: any[] = [];
+  @Input() data: TableRow[] = [];
   @Input() actions: TableAction[] = [];
-  @Input() currentPage: number = 1;
-  @Input() pageSize: number = 10;
-  @Input() totalItems: number = 0;
+  @Input() currentPage = 1;
+  @Input() pageSize = 10;
+  @Input() totalItems = 0;
 
-  @Output() rowClick = new EventEmitter<any>();
-  @Output() actionClick = new EventEmitter<{ action: string; row: any }>();
+  @Output() rowClick = new EventEmitter<TableRow>();
+  @Output() actionClick = new EventEmitter<{ action: string; row: TableRow }>();
   @Output() sortChange = new EventEmitter<{ key: string; direction: 'asc' | 'desc' }>();
   @Output() pageChange = new EventEmitter<number>();
 
-  selectedRow: number = -1;
-  sortKey: string = '';
+  selectedRow = -1;
+  sortKey = '';
   sortDirection: 'asc' | 'desc' = 'asc';
 
   get totalPages(): number {
-    return Math.ceil(this.totalItems / this.pageSize);
+    const safePageSize = this.pageSize > 0 ? this.pageSize : 1;
+    return Math.max(1, Math.ceil(this.totalItems / safePageSize));
   }
 
-  onRowClick(row: any, index: number): void {
+  onRowClick(row: TableRow, index: number): void {
     this.selectedRow = index;
     this.rowClick.emit(row);
   }
 
-  onAction(action: string, row: any): void {
+  onAction(action: string, row: TableRow): void {
     this.actionClick.emit({ action, row });
   }
 
@@ -245,11 +266,17 @@ export class TableComponent {
       this.sortKey = key;
       this.sortDirection = 'asc';
     }
+
     this.sortChange.emit({ key: this.sortKey, direction: this.sortDirection });
   }
 
   onPageChange(page: number): void {
+    if (page < 1 || page > this.totalPages) {
+      return;
+    }
+
     this.pageChange.emit(page);
   }
 }
+
 

@@ -1,322 +1,1088 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
+import { finalize } from 'rxjs/operators';
+import {
+  PricingQuote,
+  ReviewSummary,
+  Service,
+  ServiceRequestLiveStatus
+} from '../../../core/models';
+import { IMAGE_CONFIG } from '../../../core/config/image.config';
+import { ApiService, BookingRequest, BookingResponse } from '../../../core/services/api.service';
 import { ConfigService } from '../../../core/services/config.service';
-import { ApiService } from '../../../core/services/api.service';
 import { EventTrackingService } from '../../../core/services/event-tracking.service';
 
 @Component({
   selector: 'app-booking',
   template: `
     <section class="page-hero">
-      <div class="hero-bg-effect"></div>
       <div class="container">
-        <h1>Book a Service</h1>
-        <p>Schedule Your AC Service</p>
+        <div class="hero-copy">
+          <h1>Book a Service</h1>
+          <p>Complete the primary booking step in under a minute, then track everything live after submission.</p>
+        </div>
       </div>
     </section>
 
-    <section class="booking-section">
-      <div class="container">
-        <div class="booking-form-container">
+    <section class="section-shell">
+      <div class="container booking-layout">
+        <div class="booking-form-container surface-card">
           <h2>Book AC Service</h2>
-          <p>Fill out the form below and we will get back to you shortly</p>
-          
+          <p class="booking-intro">Share the essentials first. Everything else can be added only if you want to.</p>
+
+          <div class="info-banner booking-city-bar">
+            <div>
+              <span>Service city</span>
+              <strong>{{ selectedArea || 'Will be confirmed from your location' }}</strong>
+            </div>
+            <div class="city-selector-inline" *ngIf="availableCities.length > 1">
+              <label for="booking-city" class="sr-only">Choose service city</label>
+              <select
+                id="booking-city"
+                [ngModel]="selectedArea"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="onCitySelected($event)">
+                <option *ngFor="let city of availableCities" [ngValue]="city">{{ city }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="status-message success success-card" *ngIf="bookingReceipt">
+            <div class="success-title">Request received</div>
+            <p class="success-copy">{{ bookingSuccessMessage }}</p>
+            <div class="success-grid">
+              <div class="success-item">
+                <span>Request ID</span>
+                <strong>{{ bookingReceipt.requestNo || ('#' + bookingReceipt.bookingId) }}</strong>
+              </div>
+              <div class="success-item">
+                <span>Status</span>
+                <strong>{{ formatStatusLabel(bookingReceipt.status || 'New') }}</strong>
+              </div>
+              <div class="success-item">
+                <span>City</span>
+                <strong>{{ bookingReceipt.city || selectedArea || '-' }}</strong>
+              </div>
+              <div class="success-item">
+                <span>Urgency</span>
+                <strong>{{ bookingReceipt.urgency || 'Standard' }}</strong>
+              </div>
+              <div class="success-item">
+                <span>Estimated Price</span>
+                <strong>{{ formatCurrency(bookingReceipt.estimatedPrice) }}</strong>
+              </div>
+              <div class="success-item">
+                <span>ETA</span>
+                <strong>{{ bookingReceipt.etaMinutes || 0 }} min</strong>
+              </div>
+            </div>
+            <div class="success-actions">
+              <button class="cta-primary" type="button" (click)="scrollToTracker()">Track Your Service</button>
+              <span class="assignment-copy" *ngIf="bookingReceipt.autoAssigned">
+                Auto-assigned to {{ bookingReceipt.assignedTechnicianName || 'the next available technician' }}.
+              </span>
+            </div>
+          </div>
+
+          <div class="status-message error" *ngIf="bookingErrorMessage">
+            {{ bookingErrorMessage }}
+          </div>
+
           <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()">
             <fieldset>
-              <legend>Personal Information</legend>
-              <div class="form-group">
-                <label for="name">Full Name *</label>
-                <input type="text" id="name" formControlName="name" required>
-                <div class="error" *ngIf="bookingForm.get('name')?.touched && bookingForm.get('name')?.invalid">
-                  Name is required
+              <legend>Primary Details</legend>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="name">Full Name *</label>
+                  <input type="text" id="name" formControlName="name" autocomplete="name" required>
+                  <div class="error" *ngIf="showFieldError('name', 'required')">
+                    Name is required.
+                  </div>
                 </div>
-              </div>
-              <div class="form-group">
-                <label for="phone">Phone Number *</label>
-                <input type="tel" id="phone" formControlName="phone" required>
-                <div class="error" *ngIf="bookingForm.get('phone')?.touched && bookingForm.get('phone')?.invalid">
-                  Phone number is required
+
+                <div class="form-group">
+                  <label for="phone">Phone Number *</label>
+                  <input type="tel" id="phone" formControlName="phone" autocomplete="tel" inputmode="tel" required>
+                  <div class="error" *ngIf="showFieldError('phone', 'required')">
+                    Phone number is required.
+                  </div>
+                  <div class="error" *ngIf="showFieldError('phone', 'pattern')">
+                    Enter a valid phone number.
+                  </div>
                 </div>
-              </div>
-              <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" formControlName="email">
+
+                <div class="form-group">
+                  <label for="service">Service Type *</label>
+                  <select id="service" formControlName="serviceType" required>
+                    <option value="">Select a service</option>
+                    <option *ngFor="let service of services" [value]="service.id">{{ service.name }}</option>
+                  </select>
+                  <div class="error" *ngIf="showFieldError('serviceType', 'required')">
+                    Select a service type.
+                  </div>
+                </div>
+
+                <div class="form-group form-group--wide">
+                  <label for="address">Service Address *</label>
+                  <textarea
+                    id="address"
+                    formControlName="address"
+                    rows="3"
+                    autocomplete="street-address"
+                    placeholder="House no, street, landmark"
+                    required>
+                  </textarea>
+                  <div class="error" *ngIf="showFieldError('address', 'required')">
+                    Service address is required.
+                  </div>
+                </div>
               </div>
             </fieldset>
 
-            <fieldset>
-              <legend>Service Details</legend>
-              <div class="form-group">
-                <label for="service">Service Type *</label>
-                <select id="service" formControlName="serviceType" required>
-                  <option value="">Select a service</option>
-                  <option value="repair">AC Repair</option>
-                  <option value="installation">AC Installation</option>
-                  <option value="maintenance">AC Maintenance</option>
-                  <option value="gas">Gas Refilling</option>
-                  <option value="amc">AMC (Annual Maintenance Contract)</option>
-                </select>
+            <div class="optional-shell">
+              <button type="button" class="btn-secondary optional-toggle" (click)="toggleOptionalFields()">
+                {{ showOptionalFields ? 'Hide optional details' : 'Add optional details' }}
+              </button>
+
+              <fieldset *ngIf="showOptionalFields">
+                <legend>Optional Details</legend>
+
+                <div class="form-grid">
+                  <div class="form-group form-group--wide">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" formControlName="email" autocomplete="email">
+                    <div class="error" *ngIf="showFieldError('email', 'email')">
+                      Enter a valid email address.
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="urgency">Dispatch Priority</label>
+                    <select id="urgency" formControlName="urgency">
+                      <option value="Standard">Standard</option>
+                      <option value="Urgent">Urgent (+20%)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group" *ngIf="brands.length > 0; else brandInput">
+                    <label for="brand">AC Brand</label>
+                    <select id="brand" formControlName="acBrand">
+                      <option value="">Select brand</option>
+                      <option *ngFor="let brand of brands" [value]="brand">{{ brand }}</option>
+                    </select>
+                  </div>
+
+                  <ng-template #brandInput>
+                    <div class="form-group">
+                      <label for="brandText">AC Brand</label>
+                      <input id="brandText" type="text" formControlName="acBrand" placeholder="Enter AC brand">
+                    </div>
+                  </ng-template>
+
+                  <div class="form-group form-group--wide">
+                    <label for="issue">Describe the Issue</label>
+                    <textarea id="issue" formControlName="issue" rows="4" placeholder="Cooling issue, water leakage, unusual noise, or any notes"></textarea>
+                  </div>
+
+                  <div class="form-group form-group--wide">
+                    <label for="date">Preferred Date</label>
+                    <input type="date" id="date" formControlName="preferredDate" [min]="minDate">
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+
+            <div class="quote-card surface-muted" *ngIf="pricingQuote">
+              <div class="quote-header">
+                <h3>Price Preview</h3>
+                <span>{{ pricingQuote.urgency }}</span>
               </div>
-              <div class="form-group">
-                <label for="brand">AC Brand</label>
-                <select id="brand" formControlName="acBrand">
-                  <option value="">Select brand</option>
-                  <option value="lg">LG</option>
-                  <option value="samsung">Samsung</option>
-                  <option value="daikin">Daikin</option>
-                  <option value="hitachi">Hitachi</option>
-                  <option value="voltas">Voltas</option>
-                  <option value="blue-star">Blue Star</option>
-                  <option value="carrier">Carrier</option>
-                  <option value="panasonic">Panasonic</option>
-                  <option value="mitsubishi">Mitsubishi</option>
-                  <option value="other">Other</option>
-                </select>
+              <div class="quote-grid">
+                <div>
+                  <span>Base Price</span>
+                  <strong>{{ formatCurrency(pricingQuote.basePrice) }}</strong>
+                </div>
+                <div>
+                  <span>Estimated Final</span>
+                  <strong>{{ formatCurrency(pricingQuote.finalPrice) }}</strong>
+                </div>
               </div>
-              <div class="form-group">
-                <label for="issue">Describe the Issue</label>
-                <textarea id="issue" formControlName="issue" rows="4" placeholder="Please describe the problem with your AC..."></textarea>
+              <div class="quote-modifiers" *ngIf="pricingQuote.modifiers.length > 0">
+                <div class="modifier-row" *ngFor="let modifier of pricingQuote.modifiers">
+                  <span>{{ modifier.label }}</span>
+                  <strong>+{{ formatCurrency(modifier.amount) }}</strong>
+                </div>
               </div>
-              <div class="form-group">
-                <label for="address">Service Address *</label>
-                <textarea id="address" formControlName="address" rows="3" required></textarea>
-              </div>
-              <div class="form-group">
-                <label for="date">Preferred Date</label>
-                <input type="date" id="date" formControlName="preferredDate">
-              </div>
-            </fieldset>
+              <p class="quote-note">
+                {{ pricingQuote.priceLabel || 'Starting from live base pricing.' }} Final price may vary after diagnosis.
+              </p>
+            </div>
 
             <div class="form-actions">
-              <button type="submit" class="btn-primary" [disabled]="bookingForm.invalid || isSubmitting">
+              <button type="submit" class="cta-primary-lg" [disabled]="isSubmitting">
                 {{ isSubmitting ? 'Submitting...' : 'Book Now' }}
               </button>
             </div>
+
+            <p class="submit-note">We'll confirm availability and contact you shortly after submission.</p>
           </form>
         </div>
 
-        <div class="alternative-booking">
-          <h3>Other Ways to Book</h3>
-          <p>You can also book your service through:</p>
-          <div class="alt-buttons">
-            <a [href]="callUrl" class="btn-primary btn-call">Call Now</a>
-            <a [href]="whatsAppUrl" class="btn-whatsapp">WhatsApp</a>
+        <aside class="booking-sidebar surface-card">
+          <div class="media-frame media-frame--panel sidebar-visual" *ngIf="bookingHeroImage as imageUrl">
+            <img [src]="imageUrl" alt="Coolzo AC service team preparing for an appointment" loading="lazy" decoding="async">
+          </div>
+
+          <div class="sidebar-block">
+            <h3>Fast, premium booking</h3>
+            <p>Bookings are routed to the best available technician based on service fit, city coverage, and current load.</p>
+            <ul class="sidebar-trust-list">
+              <li>Quick confirmation call after booking</li>
+              <li>Live service status once assigned</li>
+              <li>No unnecessary steps before submission</li>
+            </ul>
+          </div>
+
+          <div class="sidebar-block">
+            <h3>Need help first?</h3>
+            <p>Use a direct channel if you want to talk before submitting the form.</p>
+            <div class="sidebar-actions">
+              <a [href]="callUrl" class="btn-secondary" (click)="onCallClick()">Call Now</a>
+              <a [href]="whatsAppUrl" class="btn-whatsapp" target="_blank" rel="noopener" (click)="onWhatsAppClick()">WhatsApp</a>
+            </div>
+          </div>
+
+          <div class="sidebar-block review-block" *ngIf="reviewSummary.totalReviews > 0">
+            <h3>Trust Engine</h3>
+            <div class="review-rating">{{ reviewSummary.averageRating | number:'1.1-1' }}/5</div>
+            <p>Built from {{ reviewSummary.totalReviews }} public customer reviews.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section-shell" *ngIf="liveStatusLoading || liveStatus" id="tracker">
+      <div class="container">
+        <div class="tracker-card surface-card">
+          <div class="tracker-header">
+            <div>
+              <h2>Track Your Service</h2>
+              <p *ngIf="liveStatus">Request {{ liveStatus.requestNo }} in {{ liveStatus.city || selectedArea }}</p>
+            </div>
+            <div class="tracker-pill" *ngIf="liveStatus">
+              {{ formatStatusLabel(liveStatus.status) }}
+            </div>
+          </div>
+
+          <app-loading *ngIf="liveStatusLoading" message="Loading live status..."></app-loading>
+
+          <div *ngIf="liveStatus" class="tracker-layout">
+            <div class="timeline">
+              <div class="timeline-step" *ngFor="let step of liveStatus.timeline" [class.completed]="step.isCompleted" [class.current]="step.isCurrent">
+                <div class="timeline-dot"></div>
+                <div>
+                  <strong>{{ step.label }}</strong>
+                  <p>{{ step.completedAt ? (step.completedAt | date:'medium') : 'Waiting for this step.' }}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="tracker-summary">
+              <div class="summary-grid">
+                <div class="summary-card">
+                  <span>Technician</span>
+                  <strong>{{ liveStatus.technicianName || 'Assigning now' }}</strong>
+                </div>
+                <div class="summary-card">
+                  <span>Contact</span>
+                  <strong>{{ liveStatus.technicianPhone || 'Shared after dispatch' }}</strong>
+                </div>
+                <div class="summary-card">
+                  <span>ETA</span>
+                  <strong>{{ liveStatus.etaMinutes }} min</strong>
+                </div>
+                <div class="summary-card">
+                  <span>Estimated Price</span>
+                  <strong>{{ formatCurrency(liveStatus.estimatedPrice) }}</strong>
+                </div>
+              </div>
+
+              <div class="review-form-shell" *ngIf="liveStatus.canReview">
+                <h3>Rate Your Service</h3>
+                <p>Your feedback strengthens the trust engine for the next customer.</p>
+
+                <div class="status-message success" *ngIf="reviewSuccessMessage">{{ reviewSuccessMessage }}</div>
+                <div class="status-message error" *ngIf="reviewErrorMessage">{{ reviewErrorMessage }}</div>
+
+                <form [formGroup]="reviewForm" (ngSubmit)="submitReview()">
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="rating">Rating *</label>
+                      <select id="rating" formControlName="rating">
+                        <option *ngFor="let rating of [5, 4, 3, 2, 1]" [ngValue]="rating">{{ rating }} Star{{ rating > 1 ? 's' : '' }}</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group form-group--wide">
+                      <label for="comment">Comment</label>
+                      <textarea id="comment" formControlName="comment" rows="3" placeholder="Tell us how the visit went."></textarea>
+                    </div>
+                  </div>
+
+                  <label class="checkbox-row">
+                    <input type="checkbox" formControlName="isPublic">
+                    Show this review publicly
+                  </label>
+
+                  <button class="cta-primary" type="submit" [disabled]="isSubmittingReview">
+                    {{ isSubmittingReview ? 'Submitting...' : 'Submit Review' }}
+                  </button>
+                </form>
+              </div>
+
+              <div class="status-message success" *ngIf="liveStatus.hasReview && !liveStatus.canReview">
+                Review submitted. Thank you for helping future customers book with confidence.
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </section>
   `,
   styles: [`
-    .page-hero {
-      min-height: 40vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      position: relative;
-      padding-top: 80px;
+    .hero-copy {
+      margin: 0 auto;
+      max-width: 720px;
     }
-    
-    .page-hero h1 {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
+
+    .booking-layout {
+      align-items: start;
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.75fr);
     }
-    
-    .booking-section {
-      padding: 4rem 0;
+
+    .booking-form-container,
+    .booking-sidebar,
+    .tracker-card {
+      padding: 1.75rem;
     }
-    
-    .booking-form-container {
-      max-width: 700px;
-      margin: 0 auto 3rem;
-    }
-    
-    .booking-form-container h2 {
-      text-align: center;
-      margin-bottom: 0.5rem;
-    }
-    
-    .booking-form-container > p {
-      text-align: center;
-      color: #666;
-      margin-bottom: 2rem;
-    }
-    
-    form fieldset {
-      border: 1px solid #ddd;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      border-radius: 5px;
-    }
-    
-    form legend {
-      font-weight: 600;
-      color: #333;
-      padding: 0 0.5rem;
-    }
-    
-    .form-group {
+
+    .booking-form-container > p,
+    .booking-sidebar p,
+    .tracker-header p {
+      color: var(--text-muted);
       margin-bottom: 1rem;
     }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: #333;
-    }
-    
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 5px;
+
+    .booking-intro {
       font-size: 1rem;
+      margin-bottom: 1.25rem;
     }
-    
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: #1a73e8;
+
+    .info-banner {
+      background: var(--info-soft);
+      border: 1px solid var(--info-border);
+      border-radius: var(--radius-sm);
+      color: var(--info);
+      margin-bottom: 1rem;
+      padding: 0.9rem 1rem;
     }
-    
-    .error {
-      color: #dc3545;
-      font-size: 0.875rem;
-      margin-top: 0.25rem;
-    }
-    
-    .form-actions {
-      text-align: center;
-    }
-    
-    .btn-primary {
-      padding: 1rem 2rem;
-      background: #1a73e8;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-    
-    .btn-primary:hover:not(:disabled) {
-      background: #1557b0;
-    }
-    
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    
-    .alternative-booking {
-      text-align: center;
-      padding: 2rem;
-      background: #f8f9fa;
-      border-radius: 10px;
-    }
-    
-    .alt-buttons {
+
+    .booking-city-bar {
+      align-items: center;
       display: flex;
+      justify-content: space-between;
       gap: 1rem;
+    }
+
+    .booking-city-bar span {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.2rem;
+      text-transform: uppercase;
+    }
+
+    .booking-city-bar strong {
+      color: var(--primary);
+    }
+
+    .city-selector-inline select {
+      min-width: 180px;
+    }
+
+    .sr-only {
+      border: 0;
+      clip: rect(0 0 0 0);
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      padding: 0;
+      position: absolute;
+      width: 1px;
+    }
+
+    .form-grid,
+    .success-grid,
+    .summary-grid,
+    .quote-grid {
+      display: grid;
+      gap: 0.9rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .form-group--wide {
+      grid-column: 1 / -1;
+    }
+
+    fieldset {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 1.2rem;
+      padding: 1.25rem;
+    }
+
+    legend {
+      color: var(--text-dark);
+      font-weight: 700;
+      padding: 0 0.4rem;
+    }
+
+    .success-card {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .success-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .success-copy {
+      margin: 0;
+    }
+
+    .success-item,
+    .summary-card {
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: var(--radius-sm);
+      padding: 0.8rem 0.9rem;
+    }
+
+    .success-item span,
+    .summary-card span {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+    }
+
+    .success-actions {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+    }
+
+    .assignment-copy {
+      color: var(--text-body);
+      font-weight: 600;
+    }
+
+    .optional-shell {
+      margin-bottom: 1.2rem;
+    }
+
+    .optional-toggle {
+      width: 100%;
+    }
+
+    .quote-card {
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 1.2rem;
+      padding: 1rem 1.1rem;
+    }
+
+    .quote-header,
+    .tracker-header {
+      align-items: start;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .quote-header h3,
+    .tracker-header h2 {
+      margin: 0;
+    }
+
+    .quote-header span,
+    .tracker-pill {
+      background: var(--surface-hero-soft);
+      border-radius: 999px;
+      color: var(--primary);
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.4rem 0.75rem;
+    }
+
+    .quote-grid,
+    .quote-modifiers {
+      margin-top: 0.9rem;
+    }
+
+    .quote-grid span,
+    .modifier-row span {
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .modifier-row {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.5rem 0;
+    }
+
+    .quote-note {
+      color: var(--text-body);
+      margin: 0.9rem 0 0;
+    }
+
+    .form-actions {
+      display: flex;
       justify-content: center;
+    }
+
+    .cta-primary-lg[disabled] {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .submit-note {
+      color: var(--text-muted);
+      font-size: 0.92rem;
+      margin: 0.9rem 0 0;
+      text-align: center;
+    }
+
+    .sidebar-block + .sidebar-block {
+      border-top: 1px solid var(--border-subtle);
       margin-top: 1rem;
+      padding-top: 1rem;
     }
-    
-    .btn-call {
-      background: #1a73e8;
-      color: white;
-      padding: 1rem 2rem;
-      text-decoration: none;
-      border-radius: 5px;
-      font-weight: 600;
+
+    .sidebar-visual {
+      margin-bottom: 1rem;
     }
-    
-    .btn-whatsapp {
-      background: #25d366;
-      color: white;
-      padding: 1rem 2rem;
-      text-decoration: none;
-      border-radius: 5px;
-      font-weight: 600;
+
+    .sidebar-trust-list {
+      color: var(--text-body);
+      display: grid;
+      gap: 0.55rem;
+      list-style: none;
+      margin: 0;
+      padding: 0;
     }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 2rem;
+
+    .sidebar-trust-list li::before {
+      color: var(--accent);
+      content: '+ ';
+      font-weight: 700;
+    }
+
+    .sidebar-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .review-rating {
+      color: var(--primary);
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+
+    .tracker-layout {
+      display: grid;
+      gap: 1.25rem;
+      grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.25fr);
+      margin-top: 1.25rem;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .timeline-step {
+      align-items: start;
+      background: var(--surface-muted);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: grid;
+      gap: 0.85rem;
+      grid-template-columns: 18px 1fr;
+      padding: 0.95rem 1rem;
+    }
+
+    .timeline-step.current {
+      border-color: var(--primary);
+      box-shadow: inset 0 0 0 1px rgba(0, 97, 242, 0.12);
+    }
+
+    .timeline-step.completed {
+      background: var(--success-soft);
+      border-color: var(--success-border);
+    }
+
+    .timeline-step p {
+      color: var(--text-muted);
+      margin: 0.3rem 0 0;
+    }
+
+    .timeline-dot {
+      background: var(--border-subtle);
+      border-radius: 999px;
+      height: 18px;
+      margin-top: 0.15rem;
+      width: 18px;
+    }
+
+    .timeline-step.completed .timeline-dot,
+    .timeline-step.current .timeline-dot {
+      background: var(--primary);
+    }
+
+    .review-form-shell {
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 1.1rem;
+      padding-top: 1.1rem;
+    }
+
+    .checkbox-row {
+      align-items: center;
+      display: inline-flex;
+      gap: 0.55rem;
+      margin: 0 0 1rem;
+    }
+
+    @media (max-width: 1100px) {
+      .tracker-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 920px) {
+      .booking-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .booking-form-container,
+      .booking-sidebar,
+      .tracker-card,
+      fieldset {
+        padding: 1.25rem;
+      }
+
+      .form-grid,
+      .success-grid,
+      .summary-grid,
+      .quote-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .quote-header,
+      .tracker-header,
+      .success-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .booking-city-bar {
+        align-items: stretch;
+        flex-direction: column;
+      }
     }
   `]
 })
 export class BookingComponent implements OnInit {
   bookingForm: FormGroup;
+  reviewForm: FormGroup;
   isSubmitting = false;
-  callUrl: string = '';
-  whatsAppUrl: string = '';
+  isSubmittingReview = false;
+  liveStatusLoading = false;
+  showOptionalFields = false;
+  selectedArea = '';
+  bookingSuccessMessage = '';
+  bookingErrorMessage = '';
+  reviewSuccessMessage = '';
+  reviewErrorMessage = '';
+  bookingReceipt: BookingResponse | null = null;
+  pricingQuote: PricingQuote | null = null;
+  liveStatus: ServiceRequestLiveStatus | null = null;
+  reviewSummary: ReviewSummary = {
+    averageRating: 0,
+    totalReviews: 0,
+    recentReviews: []
+  };
+  trackingRequestId: number | null = null;
+  trackingRequestNo = '';
+  minDate = new Date().toISOString().split('T')[0];
+  readonly bookingHeroImage = this.getImage(IMAGE_CONFIG.services);
 
   constructor(
-    private fb: FormBuilder,
     private route: ActivatedRoute,
+    private fb: FormBuilder,
     private configService: ConfigService,
     private apiService: ApiService,
     private eventTrackingService: EventTrackingService
   ) {
     this.bookingForm = this.fb.group({
       name: ['', Validators.required],
-      phone: ['', Validators.required],
-      email: [''],
+      phone: ['', [Validators.required, Validators.pattern(/^[0-9+\-\s]{10,15}$/)]],
+      email: ['', Validators.email],
       serviceType: ['', Validators.required],
+      city: [''],
+      urgency: ['Standard'],
       acBrand: [''],
       issue: [''],
       address: ['', Validators.required],
       preferredDate: ['']
     });
+
+    this.reviewForm = this.fb.group({
+      rating: [5, Validators.required],
+      comment: [''],
+      isPublic: [true]
+    });
   }
 
   ngOnInit(): void {
-    this.callUrl = this.configService.getCallUrl();
-    this.whatsAppUrl = this.configService.getWhatsAppUrl();
-    
-    // Track booking form opened
-    this.eventTrackingService.trackBookingFormOpened();
-    
-    // Pre-fill service type from query params
+    void this.eventTrackingService.trackBookingFormOpened();
+    this.loadReviewSummary();
+    const defaultCity = this.configService.selectedCity || this.availableCities[0] || '';
+    this.selectedArea = defaultCity;
+    this.bookingForm.patchValue({ city: defaultCity });
+    this.bindPricingRefresh();
+
     this.route.queryParams.subscribe(params => {
-      if (params['service']) {
-        this.bookingForm.patchValue({ serviceType: params['service'] });
+      const service = `${params['service'] ?? ''}`.trim();
+      const area = `${params['area'] ?? params['city'] ?? ''}`.trim();
+      const trackId = Number(params['trackId'] ?? 0);
+      const requestNo = `${params['requestNo'] ?? ''}`.trim();
+
+      if (service) {
+        this.bookingForm.patchValue({ serviceType: service });
+      }
+
+      if (area) {
+        this.selectedArea = area;
+        this.bookingForm.patchValue({ city: area });
+        this.configService.setSelectedCity(area);
+      } else {
+        this.selectedArea = this.bookingForm.get('city')?.value || this.configService.selectedCity || '';
+      }
+
+      this.refreshPricingQuote();
+
+      if (trackId > 0 && requestNo) {
+        this.trackingRequestId = trackId;
+        this.trackingRequestNo = requestNo;
+        this.loadLiveStatus(trackId, requestNo);
       }
     });
+  }
+
+  get services(): Service[] {
+    return this.configService.services;
+  }
+
+  get brands(): string[] {
+    return this.configService.brands;
+  }
+
+  get availableCities(): string[] {
+    return this.configService.availableCities;
+  }
+
+  get callUrl(): string {
+    return this.configService.getCallUrl();
+  }
+
+  get whatsAppUrl(): string {
+    const cityMessage = this.selectedArea
+      ? `Hello, I need AC service in ${this.selectedArea}.`
+      : undefined;
+
+    return this.configService.getWhatsAppUrl(cityMessage);
+  }
+
+  showFieldError(controlName: string, errorName: string): boolean {
+    const control = this.bookingForm.get(controlName);
+    return !!control && control.touched && control.hasError(errorName);
   }
 
   onSubmit(): void {
     if (this.bookingForm.invalid) {
+      this.bookingForm.markAllAsTouched();
       return;
     }
 
     this.isSubmitting = true;
-    const bookingData = this.bookingForm.value;
-    
-    this.apiService.submitBooking(bookingData).subscribe({
-      next: (response) => {
-        this.eventTrackingService.trackBookingSubmitted(bookingData);
-        alert('Your service request has been submitted successfully! We will contact you shortly.');
-        this.bookingForm.reset();
+    this.bookingSuccessMessage = '';
+    this.bookingErrorMessage = '';
+    this.bookingReceipt = null;
+
+    const rawValue = this.bookingForm.getRawValue();
+    const bookingData: BookingRequest = {
+      name: `${rawValue.name ?? ''}`.trim(),
+      phone: `${rawValue.phone ?? ''}`.trim(),
+      serviceType: `${rawValue.serviceType ?? ''}`.trim(),
+      serviceCode: `${rawValue.serviceType ?? ''}`.trim(),
+      address: `${rawValue.address ?? ''}`.trim(),
+      preferredDate: rawValue.preferredDate ? new Date(rawValue.preferredDate).toISOString() : null,
+      source: 'Web',
+      email: `${rawValue.email ?? ''}`.trim() || undefined,
+      acBrand: `${rawValue.acBrand ?? ''}`.trim() || undefined,
+      issue: `${rawValue.issue ?? ''}`.trim() || undefined,
+      city: `${rawValue.city ?? ''}`.trim() || undefined,
+      urgency: `${rawValue.urgency ?? 'Standard'}`.trim()
+    };
+
+    this.apiService.submitBooking(bookingData).pipe(
+      finalize(() => {
         this.isSubmitting = false;
+      })
+    ).subscribe({
+      next: (response) => {
+        this.handleBookingSubmitted(response);
       },
       error: (error) => {
-        console.error('Booking error:', error);
-        alert('There was an error submitting your booking. Please try again or call us directly.');
-        this.isSubmitting = false;
+        this.bookingErrorMessage = error.error?.message || error.message || 'There was an error submitting your booking. Please try again or call us directly.';
       }
     });
   }
-}
 
+  submitReview(): void {
+    if (!this.liveStatus || !this.liveStatus.canReview || !this.trackingRequestId || !this.trackingRequestNo) {
+      return;
+    }
+
+    if (this.reviewForm.invalid) {
+      this.reviewForm.markAllAsTouched();
+      return;
+    }
+
+    this.isSubmittingReview = true;
+    this.reviewErrorMessage = '';
+    this.reviewSuccessMessage = '';
+
+    const reviewValue = this.reviewForm.getRawValue();
+    this.apiService.submitReview({
+      serviceRequestId: this.trackingRequestId,
+      requestNo: this.trackingRequestNo,
+      rating: Number(reviewValue.rating) || 5,
+      comment: `${reviewValue.comment ?? ''}`.trim() || undefined,
+      isPublic: !!reviewValue.isPublic
+    }).pipe(
+      finalize(() => {
+        this.isSubmittingReview = false;
+      })
+    ).subscribe({
+      next: () => {
+        this.reviewSuccessMessage = 'Review submitted successfully.';
+        this.liveStatus = {
+          ...this.liveStatus!,
+          canReview: false,
+          hasReview: true
+        };
+        this.loadReviewSummary();
+      },
+      error: (error) => {
+        this.reviewErrorMessage = error.error?.message || error.message || 'Your review could not be submitted right now.';
+      }
+    });
+  }
+
+  scrollToTracker(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  onCallClick(): void {
+    void this.eventTrackingService.trackCallButton('Booking Module Call');
+  }
+
+  onWhatsAppClick(): void {
+    void this.eventTrackingService.trackWhatsAppClick('Booking Module WhatsApp');
+  }
+
+  onCitySelected(city: string): void {
+    const nextCity = `${city ?? ''}`.trim();
+    this.selectedArea = nextCity;
+    this.bookingForm.patchValue({ city: nextCity });
+    if (nextCity) {
+      this.configService.setSelectedCity(nextCity);
+    }
+  }
+
+  toggleOptionalFields(): void {
+    this.showOptionalFields = !this.showOptionalFields;
+  }
+
+  formatCurrency(value?: number): string {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(value ?? 0);
+  }
+
+  formatStatusLabel(status: string): string {
+    return `${status ?? ''}`.replace(/([a-z])([A-Z])/g, '$1 $2') || 'New';
+  }
+
+  getImage(url: string | null | undefined): string | null {
+    const value = `${url ?? ''}`.trim();
+    return value ? value : null;
+  }
+
+  private bindPricingRefresh(): void {
+    ['serviceType', 'preferredDate', 'urgency', 'city'].forEach(controlName => {
+      this.bookingForm.get(controlName)?.valueChanges.subscribe(value => {
+        if (controlName === 'city') {
+          this.selectedArea = `${value ?? ''}`.trim();
+          if (this.selectedArea) {
+            this.configService.setSelectedCity(this.selectedArea);
+          }
+        }
+
+        this.refreshPricingQuote();
+      });
+    });
+  }
+
+  private refreshPricingQuote(): void {
+    const serviceType = `${this.bookingForm.get('serviceType')?.value ?? ''}`.trim();
+    if (!serviceType) {
+      this.pricingQuote = null;
+      return;
+    }
+
+    const preferredDate = this.bookingForm.get('preferredDate')?.value;
+    const city = `${this.bookingForm.get('city')?.value ?? ''}`.trim();
+    const urgency = `${this.bookingForm.get('urgency')?.value ?? 'Standard'}`.trim();
+
+    this.apiService.getPricingQuote({
+      serviceType,
+      serviceDate: preferredDate ? new Date(preferredDate).toISOString() : undefined,
+      urgency,
+      city
+    }).subscribe({
+      next: (quote) => {
+        this.pricingQuote = quote;
+      },
+      error: () => {
+        this.pricingQuote = null;
+      }
+    });
+  }
+
+  private loadLiveStatus(requestId: number, requestNo: string): void {
+    this.liveStatusLoading = true;
+    this.apiService.getServiceRequestLiveStatus(requestId, requestNo).pipe(
+      finalize(() => {
+        this.liveStatusLoading = false;
+      })
+    ).subscribe({
+      next: (status) => {
+        this.liveStatus = this.normalizeLiveStatus(status);
+      },
+      error: () => {
+        this.liveStatus = null;
+      }
+    });
+  }
+
+  private loadReviewSummary(): void {
+    this.apiService.getReviewSummary(6).subscribe({
+      next: (summary) => {
+        this.reviewSummary = {
+          averageRating: summary.averageRating ?? 0,
+          totalReviews: summary.totalReviews ?? 0,
+          recentReviews: summary.recentReviews ?? []
+        };
+      },
+      error: () => {
+        this.reviewSummary = {
+          averageRating: 0,
+          totalReviews: 0,
+          recentReviews: []
+        };
+      }
+    });
+  }
+
+  private handleBookingSubmitted(response: BookingResponse): void {
+    const selectedService = this.bookingForm.get('serviceType')?.value || '';
+    const selectedCity = this.bookingForm.get('city')?.value || this.selectedArea;
+
+    void this.eventTrackingService.trackBookingSubmitted(response);
+    this.bookingReceipt = {
+      ...response,
+      status: response.status || 'New',
+      city: response.city || selectedCity
+    };
+    this.bookingSuccessMessage = response.message || 'Your service request has been submitted successfully. We will contact you shortly.';
+    this.trackingRequestId = response.bookingId;
+    this.trackingRequestNo = response.requestNo;
+    this.loadLiveStatus(response.bookingId, response.requestNo);
+    this.selectedArea = selectedCity;
+    if (selectedCity) {
+      this.configService.setSelectedCity(selectedCity);
+    }
+
+    this.bookingForm.reset({
+      name: '',
+      phone: '',
+      email: '',
+      serviceType: selectedService,
+      city: selectedCity,
+      urgency: 'Standard',
+      acBrand: '',
+      issue: '',
+      address: '',
+      preferredDate: ''
+    });
+    this.refreshPricingQuote();
+  }
+
+  private normalizeLiveStatus(status: ServiceRequestLiveStatus): ServiceRequestLiveStatus {
+    return {
+      ...status,
+      preferredDate: status.preferredDate ? new Date(status.preferredDate) : undefined,
+      scheduledTime: status.scheduledTime ? new Date(status.scheduledTime) : undefined,
+      timeline: (status.timeline ?? []).map(step => ({
+        ...step,
+        completedAt: step.completedAt ? new Date(step.completedAt) : undefined
+      }))
+    };
+  }
+}

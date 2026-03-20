@@ -3,10 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
+import { SharedModule } from '../../shared/shared.module';
 import { BookingComponent } from './booking/booking.component';
 
 const routes: Routes = [
-  { path: '', component: BookingComponent }
+  { path: '', component: BookingComponent },
+  { path: '**', redirectTo: '' }
 ];
 
 @NgModule({
@@ -17,6 +19,7 @@ const routes: Routes = [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    SharedModule,
     RouterModule.forChild(routes)
   ]
 })

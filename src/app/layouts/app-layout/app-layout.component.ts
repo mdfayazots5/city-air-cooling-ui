@@ -1,12 +1,10 @@
 import { Component } from '@angular/core';
-import { AuthService } from '../../core/services/auth.service';
 
 @Component({
-  selector: 'app-global-layout',
+  selector: 'app-app-layout',
   template: `
-    <div class="app-background"></div>
     <div class="app-wrapper">
-      <router-outlet></router-outlet>
+      <ng-content></ng-content>
     </div>
   `,
   styles: [`
@@ -15,9 +13,6 @@ import { AuthService } from '../../core/services/auth.service';
       width: 100%;
       height: 100%;
     }
-    
-    /* Background handled by MainLayout */
-    
     .app-wrapper {
       width: 100%;
       min-height: 100vh;
@@ -26,6 +21,4 @@ import { AuthService } from '../../core/services/auth.service';
     }
   `]
 })
-export class GlobalLayoutComponent {
-  constructor(private authService: AuthService) {}
-}
+export class AppLayoutComponent { }

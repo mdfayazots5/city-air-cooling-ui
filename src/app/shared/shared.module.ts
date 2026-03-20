@@ -5,11 +5,27 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { HeaderComponent } from './components/header/header.component';
 import { FooterComponent } from './components/footer/footer.component';
+import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { LoadingComponent } from './components/loading/loading.component';
+import { ModalComponent } from './components/modal/modal.component';
+import { TableComponent } from './components/table/table.component';
+import { StatCardComponent } from './components/stat-card/stat-card.component';
+import { StatusBadgeComponent } from './components/status-badge/status-badge.component';
+import { EmptyStateComponent } from './components/empty-state/empty-state.component';
+import { HasPermissionDirective } from './directives/has-permission.directive';
 
 @NgModule({
   declarations: [
     HeaderComponent,
-    FooterComponent
+    FooterComponent,
+    SidebarComponent,
+    LoadingComponent,
+    ModalComponent,
+    TableComponent,
+    StatCardComponent,
+    StatusBadgeComponent,
+    EmptyStateComponent,
+    HasPermissionDirective
   ],
   imports: [
     CommonModule,
@@ -23,7 +39,15 @@ import { FooterComponent } from './components/footer/footer.component';
     FormsModule,
     ReactiveFormsModule,
     HeaderComponent,
-    FooterComponent
+    FooterComponent,
+    SidebarComponent,
+    LoadingComponent,
+    ModalComponent,
+    TableComponent,
+    StatCardComponent,
+    StatusBadgeComponent,
+    EmptyStateComponent,
+    HasPermissionDirective
   ]
 })
 export class SharedModule { }

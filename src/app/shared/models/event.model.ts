@@ -13,14 +13,13 @@ export interface UserEvent {
   eventDate: Date;
 }
 
-export type EventType = 
-  | 'CallButtonClicked'
-  | 'WhatsAppClicked'
-  | 'BookingFormOpened'
-  | 'BookingSubmitted'
-  | 'PageViewed'
-  | 'ContactFormOpened'
-  | 'ContactFormSubmitted';
+export enum EventType {
+  PageViewed = 'PageViewed',
+  CallClicked = 'CallClicked',
+  WhatsAppClicked = 'WhatsAppClicked',
+  BookingStarted = 'BookingStarted',
+  BookingCompleted = 'BookingCompleted'
+}
 
 export interface EventTrackRequest {
   eventType: string;
@@ -40,6 +39,8 @@ export interface AnalyticsOverview {
   totalCallClicks: number;
   totalWhatsAppClicks: number;
   totalBookings: number;
+  bookingsToday: number;
+  bookingsThisWeek: number;
   conversionRate: number;
 }
 

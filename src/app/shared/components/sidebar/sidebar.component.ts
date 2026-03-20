@@ -1,14 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+﻿import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-
-interface MenuItem {
-  label: string;
-  icon: string;
-  route: string;
-  permission?: string;
-  children?: MenuItem[];
-}
+import { NavigationItem } from '../../../core/models/rbac.model';
 
 @Component({
   selector: 'app-sidebar',
@@ -18,19 +12,20 @@ interface MenuItem {
         <div class="logo" *ngIf="!isCollapsed">
           <span class="logo-text">CAC</span>
         </div>
-        <button class="toggle-btn" (click)="toggleSidebar()">
-          <span class="icon">☰</span>
+        <button class="toggle-btn" type="button" (click)="toggleSidebar()">
+          {{ isCollapsed ? 'Open' : 'Hide' }}
         </button>
       </div>
 
       <nav class="sidebar-nav">
         <ul class="nav-list">
           <li *ngFor="let item of menuItems" class="nav-item">
-            <a [routerLink]="item.route" 
-               routerLinkActive="active"
-               [routerLinkActiveOptions]="{exact: item.route === '/admin/dashboard'}"
-               class="nav-link"
-               [title]="item.label">
+            <a
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: item.exact === true }"
+              class="nav-link"
+              [title]="item.label">
               <span class="nav-icon">{{ item.icon }}</span>
               <span class="nav-label" *ngIf="!isCollapsed">{{ item.label }}</span>
             </a>
@@ -39,8 +34,8 @@ interface MenuItem {
       </nav>
 
       <div class="sidebar-footer">
-        <button class="logout-btn" (click)="logout()">
-          <span class="nav-icon">↪</span>
+        <button class="logout-btn" type="button" (click)="logout()">
+          <span class="nav-icon">-></span>
           <span class="nav-label" *ngIf="!isCollapsed">Logout</span>
         </button>
       </div>
@@ -50,8 +45,8 @@ interface MenuItem {
     .sidebar {
       width: 250px;
       height: 100vh;
-      background: #1a1a2e;
-      color: #fff;
+      background: var(--admin-sidebar);
+      color: var(--text-light);
       display: flex;
       flex-direction: column;
       transition: width 0.3s ease;
@@ -62,7 +57,7 @@ interface MenuItem {
     }
 
     .sidebar.collapsed {
-      width: 60px;
+      width: 72px;
     }
 
     .sidebar-header {
@@ -70,21 +65,24 @@ interface MenuItem {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--footer-border);
     }
 
     .logo-text {
       font-size: 24px;
       font-weight: bold;
-      color: #00d4ff;
+      color: var(--primary);
     }
 
     .toggle-btn {
       background: none;
-      border: none;
-      color: #fff;
+      border: 1px solid var(--admin-sidebar-border);
+      color: var(--text-light);
       cursor: pointer;
-      font-size: 20px;
+      font-size: 12px;
+      border-radius: 999px;
+      padding: 0.35rem 0.65rem;
     }
 
     .sidebar-nav {
@@ -107,21 +105,24 @@ interface MenuItem {
       display: flex;
       align-items: center;
       padding: 12px 20px;
-      color: #a0a0a0;
+      color: var(--admin-sidebar-muted);
       text-decoration: none;
       transition: all 0.2s ease;
     }
 
-    .nav-link:hover, .nav-link.active {
-      background: rgba(0, 212, 255, 0.1);
-      color: #00d4ff;
-      border-left: 3px solid #00d4ff;
+    .nav-link:hover,
+    .nav-link.active {
+      background: var(--primary-tint-soft);
+      color: var(--primary);
+      border-left: 3px solid var(--primary);
     }
 
     .nav-icon {
-      font-size: 20px;
+      font-size: 12px;
+      font-weight: 700;
       width: 30px;
       text-align: center;
+      flex-shrink: 0;
     }
 
     .nav-label {
@@ -131,7 +132,7 @@ interface MenuItem {
 
     .sidebar-footer {
       padding: 20px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      border-top: 1px solid var(--footer-border);
     }
 
     .logout-btn {
@@ -141,29 +142,20 @@ interface MenuItem {
       padding: 12px 20px;
       background: none;
       border: none;
-      color: #ff6b6b;
+      color: var(--danger);
       cursor: pointer;
       font-size: 16px;
     }
 
     .logout-btn:hover {
-      background: rgba(255, 107, 107, 0.1);
+      background: var(--danger-soft);
     }
   `]
 })
-export class SidebarComponent implements OnInit {
+export class SidebarComponent implements OnInit, OnDestroy {
   isCollapsed = false;
-
-  menuItems: MenuItem[] = [
-    { label: 'Dashboard', icon: '📊', route: '/admin/dashboard' },
-    { label: 'Customers', icon: '👥', route: '/admin/customers' },
-    { label: 'Service Requests', icon: '🔧', route: '/admin/service-requests' },
-    { label: 'Technicians', icon: '⚙️', route: '/admin/technicians' },
-    { label: 'Invoices', icon: '📄', route: '/admin/invoices' },
-    { label: 'Billing', icon: '💰', route: '/admin/billing' },
-    { label: 'Analytics', icon: '📈', route: '/admin/analytics' },
-    { label: 'Settings', icon: '⚙️', route: '/admin/settings' }
-  ];
+  menuItems: NavigationItem[] = [];
+  private authSubscription?: Subscription;
 
   constructor(
     private authService: AuthService,
@@ -171,14 +163,13 @@ export class SidebarComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.filterMenuByPermissions();
+    this.authSubscription = this.authService.authState$.subscribe(() => {
+      this.menuItems = this.authService.getNavigationItems();
+    });
   }
 
-  filterMenuByPermissions(): void {
-    this.menuItems = this.menuItems.filter(item => {
-      if (!item.permission) return true;
-      return this.authService.hasPermission(item.permission);
-    });
+  ngOnDestroy(): void {
+    this.authSubscription?.unsubscribe();
   }
 
   toggleSidebar(): void {
@@ -187,7 +178,7 @@ export class SidebarComponent implements OnInit {
 
   logout(): void {
     this.authService.logout();
-    this.router.navigate(['/auth/login']);
+    this.router.navigateByUrl('/auth/login');
   }
 }
 

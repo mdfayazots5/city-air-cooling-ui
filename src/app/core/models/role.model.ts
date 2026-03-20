@@ -24,6 +24,9 @@ export interface Module {
   description?: string;
   sortOrder?: number;
   isActive: boolean;
+  routePath: string;
+  showInMenu: boolean;
+  defaultPermissionCode: string;
 }
 
 export interface RolePermission {

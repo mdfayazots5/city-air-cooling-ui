@@ -1,5 +1,6 @@
 // Core Models Index
 export * from './site-config.model';
+export * from './master-data.model';
 export * from './user.model';
 export * from './role.model';
 export * from './customer.model';

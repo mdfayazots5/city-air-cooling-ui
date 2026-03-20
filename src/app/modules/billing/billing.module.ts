@@ -2,32 +2,29 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { SharedModule } from '../../shared/shared.module';
+import { BillingHomeComponent } from './billing-home/billing-home.component';
 
-/**
- * Billing Module
- * 
- * This module provides billing and invoice management functionality.
- * Child modules (invoices, invoice-generation, invoice-history) can be added later.
- * 
- * Route structure:
- * /admin/billing - Main billing page
- * /admin/billing/invoices - Invoice list
- * /admin/billing/generate - Generate new invoice
- * /admin/billing/history - Invoice history
- */
 const routes: Routes = [
   {
     path: '',
-    redirectTo: 'invoices',
-    pathMatch: 'full'
+    component: BillingHomeComponent
+  },
+  {
+    path: '**',
+    component: BillingHomeComponent
   }
 ];
 
 @NgModule({
+  declarations: [
+    BillingHomeComponent
+  ],
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    SharedModule,
     RouterModule.forChild(routes)
   ],
   exports: [

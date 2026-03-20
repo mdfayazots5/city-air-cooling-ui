@@ -1,5 +1,8 @@
-// Site Configuration Model
-// Migrated from site-config.js
+export interface BrandConfig {
+  name: string;
+  tagline: string;
+  whatsAppMessage: string;
+}
 
 export interface BusinessInfo {
   name: string;
@@ -52,6 +55,17 @@ export interface WorkingHours {
   is24Hours: boolean;
 }
 
+export interface WorkingHoursSchedule {
+  monday: WorkingHours;
+  tuesday: WorkingHours;
+  wednesday: WorkingHours;
+  thursday: WorkingHours;
+  friday: WorkingHours;
+  saturday: WorkingHours;
+  sunday: WorkingHours;
+  emergency24x7: boolean;
+}
+
 export interface SocialLinks {
   whatsapp: string;
   facebook: string;
@@ -77,32 +91,52 @@ export interface AnalyticsConfig {
   callTracking: boolean;
 }
 
+export interface SiteMetadata {
+  version: string;
+  lastUpdated: string;
+  author: string;
+  copyright: string;
+}
+
 export interface SiteConfig {
+  brand: BrandConfig;
   business: BusinessInfo;
   serviceAreas: ServiceArea[];
   services: Service[];
   brands: string[];
   seo: SeoConfig;
   social: SocialLinks;
-  workingHours: {
-    monday: WorkingHours;
-    tuesday: WorkingHours;
-    wednesday: WorkingHours;
-    thursday: WorkingHours;
-    friday: WorkingHours;
-    saturday: WorkingHours;
-    sunday: WorkingHours;
-    emergency24x7: boolean;
-  };
+  workingHours: WorkingHoursSchedule;
   features: Feature[];
   testimonials: Testimonial[];
   faqs: Faq[];
   analytics: AnalyticsConfig;
-  metadata: {
-    version: string;
-    lastUpdated: string;
-    author: string;
-    copyright: string;
-  };
+  metadata: SiteMetadata;
+}
+
+export interface SystemSettings {
+  businessName: string;
+  businessPhone: string;
+  businessEmail: string;
+  businessAddress: string;
+  invoicePrefix: string;
+  requestPrefix: string;
+}
+
+export interface WhatsAppSettings {
+  providerName: string;
+  apiUrl: string;
+  senderNumber: string;
+  isActive: boolean;
+}
+
+export interface EmailSettings {
+  smtpHost: string;
+  smtpPort: number;
+  username: string;
+  enableSsl: boolean;
+  fromEmail: string;
+  fromName: string;
+  isActive: boolean;
 }
 

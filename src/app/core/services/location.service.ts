@@ -11,6 +11,8 @@ export interface GeoLocation {
   providedIn: 'root'
 })
 export class LocationService {
+  private readonly geolocation = typeof navigator !== 'undefined' ? navigator.geolocation : null;
+  private geolocationUnavailable = false;
 
   constructor() { }
 
@@ -19,13 +21,13 @@ export class LocationService {
    */
   getLocation(): Promise<GeoLocation | null> {
     return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        console.warn('Geolocation is not supported by this browser');
+      if (!this.geolocation || this.geolocationUnavailable) {
+        this.geolocationUnavailable = true;
         resolve(null);
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(
+      this.geolocation.getCurrentPosition(
         (position) => {
           resolve({
             latitude: position.coords.latitude,
@@ -34,8 +36,8 @@ export class LocationService {
             timestamp: position.timestamp
           });
         },
-        (error) => {
-          console.warn('Error getting location:', error.message);
+        () => {
+          this.geolocationUnavailable = true;
           resolve(null);
         },
         {
@@ -51,7 +53,7 @@ export class LocationService {
    * Check if geolocation is available
    */
   isGeolocationAvailable(): boolean {
-    return 'geolocation' in navigator;
+    return this.geolocation !== null;
   }
 
   /**
@@ -61,14 +63,14 @@ export class LocationService {
     onSuccess: (location: GeoLocation) => void,
     onError?: (error: any) => void
   ): number | null {
-    if (!navigator.geolocation) {
+    if (!this.geolocation) {
       if (onError) {
         onError('Geolocation is not supported');
       }
       return null;
     }
 
-    return navigator.geolocation.watchPosition(
+    return this.geolocation.watchPosition(
       (position) => {
         onSuccess({
           latitude: position.coords.latitude,
@@ -94,7 +96,9 @@ export class LocationService {
    * Stop watching position
    */
   clearWatch(watchId: number): void {
-    navigator.geolocation.clearWatch(watchId);
+    if (this.geolocation) {
+      this.geolocation.clearWatch(watchId);
+    }
   }
 }
 

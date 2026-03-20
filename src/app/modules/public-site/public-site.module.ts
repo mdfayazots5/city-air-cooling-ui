@@ -5,7 +5,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { HomeComponent } from './home/home.component';
 import { ServicesComponent } from './services/services.component';
-import { BookingComponent } from './booking/booking.component';
 import { ContactComponent } from './contact/contact.component';
 import { AboutComponent } from './about/about.component';
 import { FaqComponent } from './faq/faq.component';
@@ -14,7 +13,6 @@ import { ServiceAreasComponent } from './service-areas/service-areas.component';
 const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'services', component: ServicesComponent },
-  { path: 'book-service', component: BookingComponent },
   { path: 'contact', component: ContactComponent },
   { path: 'about', component: AboutComponent },
   { path: 'faq', component: FaqComponent },
@@ -26,7 +24,6 @@ const routes: Routes = [
   declarations: [
     HomeComponent,
     ServicesComponent,
-    BookingComponent,
     ContactComponent,
     AboutComponent,
     FaqComponent,
