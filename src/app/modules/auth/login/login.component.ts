@@ -23,6 +23,7 @@ import { ConfigService } from '../../../core/services/config.service';
             <input 
               type="text" 
               id="username" 
+              data-test="username"
               formControlName="username"
               autocomplete="username"
               placeholder="Enter your username"
@@ -38,6 +39,7 @@ import { ConfigService } from '../../../core/services/config.service';
               <input 
                 [type]="showPassword ? 'text' : 'password'"
                 id="password" 
+                data-test="password"
                 formControlName="password"
                 autocomplete="current-password"
                 placeholder="Enter your password"
@@ -45,6 +47,7 @@ import { ConfigService } from '../../../core/services/config.service';
               <button
                 type="button"
                 class="visibility-toggle"
+                data-test="toggle-password-visibility"
                 (click)="togglePasswordVisibility()"
                 [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'">
                 {{ showPassword ? 'Hide' : 'Show' }}
@@ -57,7 +60,7 @@ import { ConfigService } from '../../../core/services/config.service';
           
           <div class="form-group remember-me">
             <label>
-              <input type="checkbox" formControlName="rememberMe">
+              <input type="checkbox" data-test="remember-me" formControlName="rememberMe">
               Remember me
             </label>
           </div>
@@ -70,14 +73,14 @@ import { ConfigService } from '../../../core/services/config.service';
             {{ infoMessage }}
           </div>
           
-          <button type="submit" class="login-btn" [disabled]="isLoading || loginForm.invalid">
+          <button type="submit" class="login-btn" data-test="auth-submit" [disabled]="isLoading || loginForm.invalid">
             <span *ngIf="!isLoading">Sign In</span>
             <span *ngIf="isLoading">Logging in...</span>
           </button>
         </form>
         
         <div class="login-footer">
-          <button type="button" class="link-button" (click)="showHelp = !showHelp">
+          <button type="button" class="link-button" data-test="help-toggle" (click)="showHelp = !showHelp">
             Need help signing in?
           </button>
           <p class="help-text" *ngIf="showHelp">

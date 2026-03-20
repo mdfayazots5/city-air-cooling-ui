@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
 import { ConfigService } from './core/services/config.service';
 import { RouteScrollService } from './core/services/route-scroll.service';
+import { TestIdInstrumentationService } from './core/services/test-id-instrumentation.service';
 
 @Component({
   selector: 'app-root',
@@ -38,9 +39,11 @@ export class AppComponent {
     private readonly title: Title,
     private readonly meta: Meta,
     private readonly configService: ConfigService,
-    private readonly routeScrollService: RouteScrollService
+    private readonly routeScrollService: RouteScrollService,
+    private readonly testIdInstrumentation: TestIdInstrumentationService
   ) {
     void this.routeScrollService;
+    this.testIdInstrumentation.start();
 
     this.configService.configLoadError$.subscribe(error => {
       this.configError = error;

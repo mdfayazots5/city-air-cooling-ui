@@ -1,7 +1,6 @@
 import { Component, HostListener } from '@angular/core';
-import { BrandConfig, BusinessInfo } from '../../../core/models';
+import { BrandConfig } from '../../../core/models';
 import { ConfigService } from '../../../core/services/config.service';
-import { EventTrackingService } from '../../../core/services/event-tracking.service';
 
 @Component({
   selector: 'app-header',
@@ -37,14 +36,6 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
           </nav>
 
           <div class="header-actions">
-            <div class="city-selector" *ngIf="availableCities.length > 0">
-              <label for="header-city" class="sr-only">Choose city</label>
-              <select id="header-city" [ngModel]="selectedCity" (ngModelChange)="onCityChange($event)">
-                <option *ngFor="let city of availableCities" [ngValue]="city">{{ city }}</option>
-              </select>
-            </div>
-            <a [href]="callUrl" class="quick-action" (click)="onCallClick()">Call</a>
-            <a [href]="whatsAppUrl" class="quick-action quick-action--whatsapp" target="_blank" rel="noopener" (click)="onWhatsAppClick()">WhatsApp</a>
             <a routerLink="/booking" [queryParams]="{ city: selectedCity }" class="cta-primary" (click)="closeMobileMenu()">Book Now</a>
           </div>
         </div>
@@ -170,30 +161,6 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       gap: 1rem;
     }
 
-    .city-selector select {
-      background: var(--surface-solid);
-      border: 1px solid var(--border-subtle);
-      border-radius: 999px;
-      color: var(--text-body);
-      font-weight: 600;
-      min-height: 42px;
-      padding: 0.55rem 0.95rem;
-    }
-
-    .quick-action {
-      color: var(--text-body);
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .quick-action--whatsapp {
-      color: var(--whatsapp);
-    }
-
-    .quick-action:hover {
-      color: var(--primary);
-    }
-
     .sr-only {
       border: 0;
       clip: rect(0 0 0 0);
@@ -245,8 +212,6 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
         align-items: stretch;
       }
 
-      .city-selector select,
-      .quick-action,
       .cta-primary {
         text-align: center;
         width: 100%;
@@ -259,45 +224,20 @@ export class HeaderComponent {
   mobileMenuOpen = false;
 
   constructor(
-    private configService: ConfigService,
-    private eventTrackingService: EventTrackingService
+    private configService: ConfigService
   ) {}
 
   get brand(): BrandConfig {
     return this.configService.brand;
   }
 
-  get business(): BusinessInfo {
-    return this.configService.business;
-  }
-
-  get availableCities(): string[] {
-    return this.configService.availableCities;
-  }
-
   get selectedCity(): string {
     return this.configService.selectedCity;
-  }
-
-  get callUrl(): string {
-    return this.configService.getCallUrl();
-  }
-
-  get whatsAppUrl(): string {
-    const cityMessage = this.selectedCity
-      ? `Hello, I need AC service in ${this.selectedCity}.`
-      : undefined;
-
-    return this.configService.getWhatsAppUrl(cityMessage);
   }
 
   @HostListener('window:scroll')
   onScroll(): void {
     this.isScrolled = typeof window !== 'undefined' && window.scrollY > 100;
-  }
-
-  onCityChange(city: string): void {
-    this.configService.setSelectedCity(city);
   }
 
   toggleMobileMenu(): void {
@@ -306,13 +246,5 @@ export class HeaderComponent {
 
   closeMobileMenu(): void {
     this.mobileMenuOpen = false;
-  }
-
-  onCallClick(): void {
-    void this.eventTrackingService.trackCallButton('Header Call');
-  }
-
-  onWhatsAppClick(): void {
-    void this.eventTrackingService.trackWhatsAppClick('Header WhatsApp');
   }
 }
