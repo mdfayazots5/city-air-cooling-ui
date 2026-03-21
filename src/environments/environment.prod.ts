@@ -1,6 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '/api',
-  siteUrl: ''
+  apiUrl: 'https://city-air-cooling-api.onrender.com',
+  siteUrl: 'https://www.coolzo.in'
 };
-
