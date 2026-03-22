@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
   private refreshTokenSubject = new BehaviorSubject<string | null>(null);
-  private readonly publicAuthEndpoints = ['/auth/login', '/auth/register', '/auth/refresh-token'];
+  private readonly publicAuthEndpoints = ['/auth/login', '/auth/register', '/auth/refresh-token', '/auth/logout'];
   private readonly retryHeader = 'x-auth-retried';
 
   constructor(
@@ -30,9 +30,15 @@ export class AuthInterceptor implements HttpInterceptor {
 
     return next.handle(request).pipe(
       catchError((error: HttpErrorResponse) => {
-        if (error.status === 401 && !!token && !request.headers.has(this.retryHeader)) {
-          return this.handle401Error(request, next);
+        if (error.status === 401) {
+          if (!!token && !request.headers.has(this.retryHeader)) {
+            return this.handle401Error(request, next);
+          }
+
+          this.authService.logout({ notifyServer: false });
+          this.redirectToLogin();
         }
+
         return throwError(() => error);
       })
     );
@@ -71,15 +77,15 @@ export class AuthInterceptor implements HttpInterceptor {
             return next.handle(this.markAsRetried(this.addToken(request, response.token)));
           }
           this.refreshTokenSubject.next('');
-          this.authService.logout();
-          this.router.navigateByUrl('/auth/login');
+          this.authService.logout({ notifyServer: false });
+          this.redirectToLogin();
           return throwError(() => new Error('Session expired'));
         }),
         catchError(error => {
           this.isRefreshing = false;
           this.refreshTokenSubject.next('');
-          this.authService.logout();
-          this.router.navigateByUrl('/auth/login');
+          this.authService.logout({ notifyServer: false });
+          this.redirectToLogin();
           return throwError(() => error);
         })
       );
@@ -96,6 +102,12 @@ export class AuthInterceptor implements HttpInterceptor {
         return throwError(() => new Error('Session expired'));
       })
     );
+  }
+
+  private redirectToLogin(): void {
+    if (!this.router.url.startsWith('/auth/login')) {
+      this.router.navigateByUrl('/auth/login', { replaceUrl: true });
+    }
   }
 }
 

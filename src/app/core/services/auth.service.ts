@@ -151,11 +151,19 @@ export class AuthService {
     );
   }
 
-  logout(): void {
+  logout(options: { notifyServer?: boolean } = {}): void {
+    const notifyServer = options.notifyServer ?? true;
     const token = this.authState.value.token;
     const headers = token
       ? new HttpHeaders({ Authorization: `Bearer ${token}` })
       : undefined;
+
+    // Clear client auth state first so guards/interceptors/reactive UI update immediately.
+    this.clearAuthState();
+
+    if (!notifyServer || !token) {
+      return;
+    }
 
     this.http.post<ApiResponse<unknown>>(
       `${this.apiUrl}/auth/logout`,
@@ -166,12 +174,10 @@ export class AuthService {
       }
     ).pipe(
       catchError(error => {
-        this.logWarn('Logout request failed, clearing local session only.', error);
+        this.logWarn('Logout request failed after local session clear.', error);
         return of(null);
       })
-    ).subscribe({
-      complete: () => this.clearAuthState()
-    });
+    ).subscribe();
   }
 
   refreshToken(): Observable<LoginResponse | null> {
@@ -438,6 +444,7 @@ export class AuthService {
   private removeStoredValue(key: string): void {
     try {
       sessionStorage.removeItem(key);
+      localStorage.removeItem(key);
     } catch (error) {
       this.logWarn(`Unable to remove auth key "${key}".`, error);
     }

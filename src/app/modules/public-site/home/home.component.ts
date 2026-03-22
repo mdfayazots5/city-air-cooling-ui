@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import {
   BrandConfig,
   BusinessInfo,
@@ -70,23 +70,24 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell">
       <div class="container">
-        <div class="section-heading">
-          <h2>Services customers book most</h2>
-          <p>Every service card now reflects the live pricing posture. Final price may vary after diagnosis and dispatch window logic.</p>
+        <div class="section-heading section-heading--on-dark">
+          <h2 class="ui-heading-contrast">Services customers book most</h2>
+          <p class="ui-subtext-contrast">Every service card now reflects the live pricing posture. Final price may vary after diagnosis and dispatch window logic.</p>
         </div>
 
         <div class="services-grid" *ngIf="services.length > 0; else emptyServices">
-          <article class="service-card surface-card" *ngFor="let service of services">
+          <article class="service-card surface-card" *ngFor="let service of visibleServices; trackBy: trackServiceById">
             <h3>{{ service.name }}</h3>
             <p>{{ service.shortDescription }}</p>
             <ul *ngIf="service.features.length > 0">
               <li *ngFor="let feature of service.features.slice(0, 3)">{{ feature }}</li>
             </ul>
             <p class="price" *ngIf="service.price">{{ service.price }}</p>
-            <p class="price-note">Final price may vary after diagnosis.</p>
+            <p class="price-note">Final price may vary after diagnosis and dispatch window logic.</p>
             <a routerLink="/booking" [queryParams]="{ service: service.id, city: selectedCity }" class="btn-secondary">Book Now</a>
           </article>
         </div>
+        <div #serviceLoadSentinel class="services-load-sentinel" *ngIf="hasMoreServices" aria-hidden="true"></div>
 
         <ng-template #emptyServices>
           <div class="surface-card empty-panel">
@@ -98,9 +99,9 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell section-alt" *ngIf="features.length > 0">
       <div class="container">
-        <div class="section-heading">
-          <h2>Why customers trust {{ brand.name }}</h2>
-          <p>Service confidence comes from clear response expectations, reliable technicians, and direct booking access.</p>
+        <div class="section-heading section-heading--on-dark">
+          <h2 class="ui-heading-contrast">Why customers trust {{ brand.name }}</h2>
+          <p class="ui-subtext-contrast">Service confidence comes from clear response expectations, reliable technicians, and direct booking access.</p>
         </div>
         <div class="features-grid">
           <div class="feature-card surface-card" *ngFor="let feature of features">
@@ -114,9 +115,9 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell">
       <div class="container">
-        <div class="section-heading">
-          <h2>How it works</h2>
-          <p>The public funnel stays simple from landing page to confirmed request.</p>
+        <div class="section-heading section-heading--on-dark">
+          <h2 class="ui-heading-contrast">How it works</h2>
+          <p class="ui-subtext-contrast">The public funnel stays simple from landing page to confirmed request.</p>
         </div>
         <div class="steps-grid">
           <div class="step surface-card">
@@ -158,9 +159,9 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell">
       <div class="container service-area-shell surface-card">
-        <div class="section-heading">
-          <h2>Service Areas</h2>
-          <p>Browse supported locations, then compare services before you book.</p>
+        <div class="section-heading section-heading--on-dark">
+          <h2 class="ui-heading-contrast">Service Areas</h2>
+          <p class="ui-subtext-contrast">Browse supported locations below, then head to services when you want to compare options.</p>
         </div>
         <ul class="areas-list" *ngIf="serviceAreas.length > 0; else emptyAreas">
           <li *ngFor="let area of serviceAreas">{{ area.name }}</li>
@@ -173,9 +174,9 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     </section>
 
     <section class="home-cta">
-      <div class="container home-cta-inner">
-        <h2>Need AC service right now?</h2>
-        <p>Move straight into booking or use direct contact options without leaving the page.</p>
+      <div class="container home-cta-inner section-heading--on-dark">
+        <h2 class="ui-heading-contrast">Need AC service right now?</h2>
+        <p class="ui-subtext-contrast">Move straight into booking or use direct contact options without leaving the page.</p>
         <div class="hero-buttons">
           <a routerLink="/booking" [queryParams]="{ city: selectedCity }" class="cta-primary-lg">Book Service Now</a>
           <a [href]="callUrl" class="btn-secondary" (click)="onCallClick()">Call Now</a>
@@ -185,9 +186,9 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell">
       <div class="container contact-shell">
-        <div class="section-heading">
-          <h2>Contact {{ brand.name }}</h2>
-          <p>Reach us directly if you want help before submitting a booking.</p>
+        <div class="section-heading section-heading--on-dark">
+          <h2 class="ui-heading-contrast">Contact {{ brand.name }}</h2>
+          <p class="ui-subtext-contrast">Reach us directly if you want help before submitting a booking.</p>
         </div>
         <div class="contact-grid">
           <div class="contact-card surface-card">
@@ -360,10 +361,42 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       text-align: center;
     }
 
+    .section-heading h2 {
+      color: #0a1f44;
+      -webkit-text-fill-color: #0a1f44;
+      forced-color-adjust: none;
+    }
+
     .section-heading p {
-      color: var(--text-muted);
+      color: #334155;
+      -webkit-text-fill-color: #334155;
+      forced-color-adjust: none;
       margin: 0 auto;
       max-width: 760px;
+    }
+
+    .section-heading--on-dark h2 {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
+      forced-color-adjust: none;
+    }
+
+    .section-heading--on-dark p {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
+      forced-color-adjust: none;
+    }
+
+    .service-area-shell .section-heading--on-dark h2 {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
+      forced-color-adjust: none;
+    }
+
+    .service-area-shell .section-heading--on-dark p {
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
+      forced-color-adjust: none;
     }
 
     .section-alt {
@@ -371,7 +404,9 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     }
 
     .services-grid {
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      grid-auto-rows: 1fr;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .features-grid {
@@ -390,6 +425,13 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     .step,
     .empty-panel {
       padding: 1.5rem;
+    }
+
+    .service-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 1.75rem;
     }
 
     .service-card p,
@@ -419,6 +461,10 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       font-weight: 700;
     }
 
+    .service-card .btn-secondary {
+      margin-top: auto;
+    }
+
     .price {
       color: var(--primary);
       font-weight: 700;
@@ -429,6 +475,11 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       color: var(--text-muted);
       font-size: 0.92rem;
       margin-bottom: 1rem;
+    }
+
+    .services-load-sentinel {
+      height: 1px;
+      width: 100%;
     }
 
     .feature-icon {
@@ -519,8 +570,16 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     }
 
     .home-cta-inner p {
-      color: var(--text-muted);
+      color: #334155;
+      -webkit-text-fill-color: #334155;
+      forced-color-adjust: none;
       margin-bottom: 1rem;
+    }
+
+    .home-cta-inner h2 {
+      color: #0a1f44;
+      -webkit-text-fill-color: #0a1f44;
+      forced-color-adjust: none;
     }
 
     .contact-card h3 {
@@ -531,6 +590,16 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       .hero-layout,
       .steps-grid,
       .trust-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .services-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .services-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -563,13 +632,44 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     }
   `]
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   reviewSummary: ReviewSummary = {
     averageRating: 0,
     totalReviews: 0,
     recentReviews: []
   };
   readonly heroImage = this.getImage(IMAGE_CONFIG.hero);
+  private readonly initialVisibleServiceCount = 9;
+  private readonly serviceBatchSize = 6;
+  private visibleServiceCount = this.initialVisibleServiceCount;
+  private servicesLazyObserver: IntersectionObserver | null = null;
+
+  @ViewChild('serviceLoadSentinel')
+  set serviceLoadSentinel(element: ElementRef<HTMLElement> | undefined) {
+    this.disconnectServicesObserver();
+
+    if (!element || !this.hasMoreServices) {
+      return;
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+      this.visibleServiceCount = this.services.length;
+      return;
+    }
+
+    this.servicesLazyObserver = new IntersectionObserver(
+      (entries) => {
+        const hasVisibleEntry = entries.some(entry => entry.isIntersecting);
+
+        if (hasVisibleEntry) {
+          this.loadMoreServices();
+        }
+      },
+      { rootMargin: '180px 0px' }
+    );
+
+    this.servicesLazyObserver.observe(element.nativeElement);
+  }
 
   constructor(
     private configService: ConfigService,
@@ -592,6 +692,10 @@ export class HomeComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.disconnectServicesObserver();
+  }
+
   get brand(): BrandConfig {
     return this.configService.brand;
   }
@@ -602,6 +706,14 @@ export class HomeComponent implements OnInit {
 
   get services(): Service[] {
     return this.configService.services;
+  }
+
+  get visibleServices(): Service[] {
+    return this.services.slice(0, this.visibleServiceCount);
+  }
+
+  get hasMoreServices(): boolean {
+    return this.visibleServiceCount < this.services.length;
   }
 
   get features(): Feature[] {
@@ -688,6 +800,10 @@ export class HomeComponent implements OnInit {
     return Array.from({ length: Math.max(1, Math.min(5, rating || 5)) }, (_, index) => index + 1);
   }
 
+  trackServiceById(_index: number, service: Service): string {
+    return service.id;
+  }
+
   getImage(url: string | null | undefined): string | null {
     const value = `${url ?? ''}`.trim();
     return value ? value : null;
@@ -699,5 +815,26 @@ export class HomeComponent implements OnInit {
 
   onWhatsAppClick(): void {
     void this.eventTrackingService.trackWhatsAppClick('WhatsApp (Home)');
+  }
+
+  private loadMoreServices(): void {
+    if (!this.hasMoreServices) {
+      this.disconnectServicesObserver();
+      return;
+    }
+
+    this.visibleServiceCount = Math.min(
+      this.visibleServiceCount + this.serviceBatchSize,
+      this.services.length
+    );
+
+    if (!this.hasMoreServices) {
+      this.disconnectServicesObserver();
+    }
+  }
+
+  private disconnectServicesObserver(): void {
+    this.servicesLazyObserver?.disconnect();
+    this.servicesLazyObserver = null;
   }
 }

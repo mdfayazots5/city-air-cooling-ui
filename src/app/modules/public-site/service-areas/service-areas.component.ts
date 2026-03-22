@@ -17,8 +17,8 @@ import { IMAGE_CONFIG } from '../../../core/config/image.config';
     </section>
 
     <section class="section-shell">
-      <div class="container">
-        <p class="intro">Browse supported locations below, then head to services when you want to compare options.</p>
+      <div class="container section-heading--on-dark">
+        <p class="intro ui-subtext-contrast">Browse supported locations below, then head to services when you want to compare options.</p>
 
         <div class="media-frame media-frame--panel areas-visual" *ngIf="areasImage as imageUrl">
           <img [src]="imageUrl" alt="Coolzo residential AC service coverage" loading="lazy" decoding="async">

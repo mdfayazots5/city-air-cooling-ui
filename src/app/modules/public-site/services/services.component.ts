@@ -49,9 +49,9 @@ import { IMAGE_CONFIG } from '../../../core/config/image.config';
     </section>
 
     <section class="service-cta">
-      <div class="container service-cta-inner">
-        <h2>Need help choosing the right AC service?</h2>
-        <p>Book now or call us directly for a quick recommendation.</p>
+      <div class="container service-cta-inner section-heading--on-dark">
+        <h2 class="ui-heading-contrast">Need help choosing the right AC service?</h2>
+        <p class="ui-subtext-contrast">Book now or call us directly for a quick recommendation.</p>
         <div class="cta-actions">
           <a routerLink="/booking" [queryParams]="selectedCity ? { city: selectedCity } : null" class="cta-primary-lg">Book Service Now</a>
           <a [href]="callUrl" class="btn-secondary">Call Support</a>
@@ -141,11 +141,16 @@ import { IMAGE_CONFIG } from '../../../core/config/image.config';
     }
 
     .service-cta-inner h2 {
+      color: #0a1f44;
+      -webkit-text-fill-color: #0a1f44;
+      forced-color-adjust: none;
       margin-bottom: 0.5rem;
     }
 
     .service-cta-inner p {
-      color: var(--text-muted);
+      color: #334155;
+      -webkit-text-fill-color: #334155;
+      forced-color-adjust: none;
       margin-bottom: 1.2rem;
     }
 

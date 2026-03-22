@@ -289,7 +289,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   logout(): void {
     this.closeSidebar();
     this.authService.logout();
-    this.router.navigateByUrl('/auth/login');
+    this.router.navigateByUrl('/auth/login', { replaceUrl: true });
   }
 
   get currentPage(): string {

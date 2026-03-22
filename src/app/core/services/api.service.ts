@@ -172,8 +172,18 @@ export class ApiService {
     pageSize?: number;
     status?: string;
     city?: string;
+    assignedTechnicianId?: number;
   }): Observable<unknown> {
     return this.get('service-requests', params);
+  }
+
+  getMyTechnicianTickets(params?: {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+    city?: string;
+  }): Observable<unknown> {
+    return this.get('technicians/me/tickets', params);
   }
 
   createServiceRequest(request: unknown): Observable<unknown> {

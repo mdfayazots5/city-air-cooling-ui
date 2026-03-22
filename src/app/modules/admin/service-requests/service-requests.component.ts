@@ -537,8 +537,11 @@ export class ServiceRequestsComponent implements OnInit {
   loadServiceRequests(): void {
     this.isLoading = true;
     this.errorMessage = '';
+    const requestStream = this.isTechnicianSession()
+      ? this.apiService.getMyTechnicianTickets()
+      : this.apiService.getServiceRequests();
 
-    this.apiService.getServiceRequests().subscribe({
+    requestStream.subscribe({
       next: data => {
         this.serviceRequests = this.normalizeServiceRequests(data);
         this.isLoading = false;
@@ -553,6 +556,11 @@ export class ServiceRequestsComponent implements OnInit {
 
   countByStatus(status: ServiceRequest['status']): number {
     return this.serviceRequests.filter(request => request.status === status).length;
+  }
+
+  private isTechnicianSession(): boolean {
+    const role = `${this.authService.getUser()?.role ?? ''}`.trim().toLowerCase();
+    return role === 'technician';
   }
 
   canManageRequests(): boolean {

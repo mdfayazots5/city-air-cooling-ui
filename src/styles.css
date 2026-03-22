@@ -41,6 +41,47 @@ h6 {
   letter-spacing: -0.02em;
 }
 
+.ui-heading-contrast {
+  color: #0A1F44 !important;
+  -webkit-text-fill-color: #0A1F44 !important;
+  forced-color-adjust: none;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.ui-subtext-contrast {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  forced-color-adjust: none;
+  opacity: 1;
+}
+
+.section-heading:not(.section-heading--on-dark) .ui-heading-contrast,
+.home-cta-inner:not(.section-heading--on-dark) .ui-heading-contrast,
+.service-cta-inner:not(.section-heading--on-dark) .ui-heading-contrast {
+  color: #0A1F44 !important;
+  -webkit-text-fill-color: #0A1F44 !important;
+}
+
+.section-heading:not(.section-heading--on-dark) .ui-subtext-contrast,
+.home-cta-inner:not(.section-heading--on-dark) .ui-subtext-contrast,
+.service-cta-inner:not(.section-heading--on-dark) .ui-subtext-contrast {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+}
+
+.section-heading--on-dark .ui-heading-contrast {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  forced-color-adjust: none;
+}
+
+.section-heading--on-dark .ui-subtext-contrast {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  forced-color-adjust: none;
+}
+
 button {
   background: none;
   border: 0;
