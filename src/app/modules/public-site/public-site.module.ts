@@ -2,9 +2,12 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { SharedModule } from '../../shared/shared.module';
 
 import { HomeComponent } from './home/home.component';
+import { HomeMobileComponent } from './home/home.mobile.component';
 import { ServicesComponent } from './services/services.component';
+import { ServiceCardMobilePublicComponent } from './services/service-card.mobile.component';
 import { ContactComponent } from './contact/contact.component';
 import { AboutComponent } from './about/about.component';
 import { FaqComponent } from './faq/faq.component';
@@ -23,7 +26,9 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     HomeComponent,
+    HomeMobileComponent,
     ServicesComponent,
+    ServiceCardMobilePublicComponent,
     ContactComponent,
     AboutComponent,
     FaqComponent,
@@ -33,7 +38,8 @@ const routes: Routes = [
     CommonModule,
     RouterModule.forChild(routes),
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    SharedModule
   ]
 })
 export class PublicSiteModule { }

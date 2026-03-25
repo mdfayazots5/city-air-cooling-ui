@@ -7,4 +7,6 @@ export * from './location.service';
 export * from './auth.service';
 export * from './notification.service';
 export * from './route-scroll.service';
+export * from './device.service';
+export * from './mobile-conversion.service';
 

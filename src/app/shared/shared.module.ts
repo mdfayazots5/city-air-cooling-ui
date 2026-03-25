@@ -12,6 +12,10 @@ import { TableComponent } from './components/table/table.component';
 import { StatCardComponent } from './components/stat-card/stat-card.component';
 import { StatusBadgeComponent } from './components/status-badge/status-badge.component';
 import { EmptyStateComponent } from './components/empty-state/empty-state.component';
+import { StickyCtaComponent } from './components/sticky-cta/sticky-cta.component';
+import { BookingStepperComponent } from './components/booking-stepper/booking-stepper.component';
+import { ServiceCardMobileComponent } from './components/service-card-mobile/service-card-mobile.component';
+import { SkeletonLoaderComponent } from './components/skeleton-loader/skeleton-loader.component';
 import { HasPermissionDirective } from './directives/has-permission.directive';
 
 @NgModule({
@@ -25,6 +29,10 @@ import { HasPermissionDirective } from './directives/has-permission.directive';
     StatCardComponent,
     StatusBadgeComponent,
     EmptyStateComponent,
+    StickyCtaComponent,
+    BookingStepperComponent,
+    ServiceCardMobileComponent,
+    SkeletonLoaderComponent,
     HasPermissionDirective
   ],
   imports: [
@@ -47,6 +55,10 @@ import { HasPermissionDirective } from './directives/has-permission.directive';
     StatCardComponent,
     StatusBadgeComponent,
     EmptyStateComponent,
+    StickyCtaComponent,
+    BookingStepperComponent,
+    ServiceCardMobileComponent,
+    SkeletonLoaderComponent,
     HasPermissionDirective
   ]
 })

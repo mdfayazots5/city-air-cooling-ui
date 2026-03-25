@@ -5,6 +5,8 @@
 }
 
 html {
+  max-width: 100%;
+  overflow-x: hidden;
   scroll-behavior: auto;
 }
 
@@ -16,7 +18,15 @@ body {
   color: var(--text-dark);
   font-family: 'Aptos', 'Segoe UI Variable', 'Segoe UI', sans-serif;
   line-height: 1.6;
+  max-width: 100%;
   min-height: 100vh;
+  overflow-x: hidden;
+}
+
+app-root {
+  display: block;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 button,
@@ -29,6 +39,14 @@ textarea {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
 }
 
 h1,
@@ -337,6 +355,22 @@ button {
   padding: 1rem 1.1rem;
 }
 
+.line-clamp-2,
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.line-clamp-2 {
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  -webkit-line-clamp: 3;
+}
+
 @media (min-width: 901px) {
   .floating-cta {
     display: none;
@@ -344,12 +378,35 @@ button {
 }
 
 @media (max-width: 900px) {
+  html {
+    font-size: 15px;
+  }
+
+  body {
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+
+  h2 {
+    font-size: 1.125rem;
+    line-height: 1.35;
+  }
+
+  h3 {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
   .container {
     padding: 0 1rem;
   }
 
   .section-shell {
-    padding: 3.5rem 0;
+    padding: 2.5rem 0;
   }
 
   .media-frame--hero {

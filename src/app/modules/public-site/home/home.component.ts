@@ -70,7 +70,7 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell">
       <div class="container">
-        <div class="section-heading section-heading--on-dark">
+        <div class="section-heading">
           <h2 class="ui-heading-contrast">Services customers book most</h2>
           <p class="ui-subtext-contrast">Every service card now reflects the live pricing posture. Final price may vary after diagnosis and dispatch window logic.</p>
         </div>
@@ -83,11 +83,10 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
               <li *ngFor="let feature of service.features.slice(0, 3)">{{ feature }}</li>
             </ul>
             <p class="price" *ngIf="service.price">{{ service.price }}</p>
-            <p class="price-note">Final price may vary after diagnosis and dispatch window logic.</p>
+            <p class="price-note">Final price may vary after diagnosis.</p>
             <a routerLink="/booking" [queryParams]="{ service: service.id, city: selectedCity }" class="btn-secondary">Book Now</a>
           </article>
         </div>
-        <div #serviceLoadSentinel class="services-load-sentinel" *ngIf="hasMoreServices" aria-hidden="true"></div>
 
         <ng-template #emptyServices>
           <div class="surface-card empty-panel">
@@ -99,7 +98,7 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell section-alt" *ngIf="features.length > 0">
       <div class="container">
-        <div class="section-heading section-heading--on-dark">
+        <div class="section-heading">
           <h2 class="ui-heading-contrast">Why customers trust {{ brand.name }}</h2>
           <p class="ui-subtext-contrast">Service confidence comes from clear response expectations, reliable technicians, and direct booking access.</p>
         </div>
@@ -115,7 +114,7 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell">
       <div class="container">
-        <div class="section-heading section-heading--on-dark">
+        <div class="section-heading">
           <h2 class="ui-heading-contrast">How it works</h2>
           <p class="ui-subtext-contrast">The public funnel stays simple from landing page to confirmed request.</p>
         </div>
@@ -159,9 +158,9 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell">
       <div class="container service-area-shell surface-card">
-        <div class="section-heading section-heading--on-dark">
+        <div class="section-heading">
           <h2 class="ui-heading-contrast">Service Areas</h2>
-          <p class="ui-subtext-contrast">Browse supported locations below, then head to services when you want to compare options.</p>
+          <p class="ui-subtext-contrast">Browse supported locations, then compare services before you book.</p>
         </div>
         <ul class="areas-list" *ngIf="serviceAreas.length > 0; else emptyAreas">
           <li *ngFor="let area of serviceAreas">{{ area.name }}</li>
@@ -174,7 +173,7 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     </section>
 
     <section class="home-cta">
-      <div class="container home-cta-inner section-heading--on-dark">
+      <div class="container home-cta-inner">
         <h2 class="ui-heading-contrast">Need AC service right now?</h2>
         <p class="ui-subtext-contrast">Move straight into booking or use direct contact options without leaving the page.</p>
         <div class="hero-buttons">
@@ -186,7 +185,7 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
 
     <section class="section-shell">
       <div class="container contact-shell">
-        <div class="section-heading section-heading--on-dark">
+        <div class="section-heading">
           <h2 class="ui-heading-contrast">Contact {{ brand.name }}</h2>
           <p class="ui-subtext-contrast">Reach us directly if you want help before submitting a booking.</p>
         </div>
@@ -361,42 +360,10 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       text-align: center;
     }
 
-    .section-heading h2 {
-      color: #0a1f44;
-      -webkit-text-fill-color: #0a1f44;
-      forced-color-adjust: none;
-    }
-
     .section-heading p {
-      color: #334155;
-      -webkit-text-fill-color: #334155;
-      forced-color-adjust: none;
+      color: var(--text-muted);
       margin: 0 auto;
       max-width: 760px;
-    }
-
-    .section-heading--on-dark h2 {
-      color: #ffffff !important;
-      -webkit-text-fill-color: #ffffff !important;
-      forced-color-adjust: none;
-    }
-
-    .section-heading--on-dark p {
-      color: #ffffff !important;
-      -webkit-text-fill-color: #ffffff !important;
-      forced-color-adjust: none;
-    }
-
-    .service-area-shell .section-heading--on-dark h2 {
-      color: #ffffff !important;
-      -webkit-text-fill-color: #ffffff !important;
-      forced-color-adjust: none;
-    }
-
-    .service-area-shell .section-heading--on-dark p {
-      color: #ffffff !important;
-      -webkit-text-fill-color: #ffffff !important;
-      forced-color-adjust: none;
     }
 
     .section-alt {
@@ -570,16 +537,8 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     }
 
     .home-cta-inner p {
-      color: #334155;
-      -webkit-text-fill-color: #334155;
-      forced-color-adjust: none;
+      color: var(--text-muted);
       margin-bottom: 1rem;
-    }
-
-    .home-cta-inner h2 {
-      color: #0a1f44;
-      -webkit-text-fill-color: #0a1f44;
-      forced-color-adjust: none;
     }
 
     .contact-card h3 {

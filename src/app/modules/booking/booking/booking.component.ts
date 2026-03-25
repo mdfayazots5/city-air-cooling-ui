@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs/operators';
@@ -10,12 +10,44 @@ import {
 } from '../../../core/models';
 import { IMAGE_CONFIG } from '../../../core/config/image.config';
 import { ApiService, BookingRequest, BookingResponse } from '../../../core/services/api.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { ConfigService } from '../../../core/services/config.service';
+import { DeviceService } from '../../../core/services/device.service';
 import { EventTrackingService } from '../../../core/services/event-tracking.service';
+import { LocationService } from '../../../core/services/location.service';
+import { MobileConversionService } from '../../../core/services/mobile-conversion.service';
 
 @Component({
   selector: 'app-booking',
   template: `
+    <app-booking-form-mobile
+      *ngIf="deviceService.isMobile$ | async; else desktopBooking"
+      [bookingForm]="bookingForm"
+      [services]="services"
+      [brands]="brands"
+      [availableCities]="availableCities"
+      [selectedArea]="selectedArea"
+      [minDate]="minDate"
+      [currentStep]="currentStep"
+      [totalSteps]="totalSteps"
+      [steps]="bookingSteps"
+      [isSubmitting]="isSubmitting"
+      [pricingQuote]="pricingQuote"
+      [bookingReceipt]="bookingReceipt"
+      [bookingSuccessMessage]="bookingSuccessMessage"
+      [bookingErrorMessage]="bookingErrorMessage"
+      [selectedServiceName]="selectedServiceName"
+      [preferredDateLabel]="preferredDateLabel"
+      (citySelected)="onCitySelected($event)"
+      (nextStep)="goToNextStep()"
+      (previousStep)="goToPreviousStep()"
+      (primaryActionPressed)="onMobilePrimaryAction($event)"
+      (secondaryActionPressed)="onMobileSecondaryAction($event)"
+      (submitBooking)="onSubmit()"
+      (trackRequested)="scrollToTracker()">
+    </app-booking-form-mobile>
+
+    <ng-template #desktopBooking>
     <section class="page-hero">
       <div class="container">
         <div class="hero-copy">
@@ -29,7 +61,9 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       <div class="container booking-layout">
         <div class="booking-form-container surface-card">
           <h2>Book AC Service</h2>
-          <p class="booking-intro">Share the essentials first. Everything else can be added only if you want to.</p>
+          <p class="booking-intro">Finish booking in 3 quick mobile-friendly steps.</p>
+
+          <app-booking-stepper [currentStep]="currentStep" [steps]="bookingSteps"></app-booking-stepper>
 
           <div class="info-banner booking-city-bar">
             <div>
@@ -90,8 +124,64 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
           </div>
 
           <form [formGroup]="bookingForm" (ngSubmit)="onSubmit()">
-            <fieldset>
-              <legend>Primary Details</legend>
+            <fieldset *ngIf="currentStep === 1">
+              <legend>Step 1 of 3: Select Service</legend>
+
+              <div class="form-grid">
+                <div class="form-group form-group--wide">
+                  <label for="service">Service Type *</label>
+                  <select id="service" formControlName="serviceType" required>
+                    <option value="">Select a service</option>
+                    <option *ngFor="let service of services" [value]="service.id">{{ service.name }}</option>
+                  </select>
+                  <div class="error" *ngIf="showFieldError('serviceType', 'required')">
+                    Select a service type.
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="urgency">Dispatch Priority</label>
+                  <select id="urgency" formControlName="urgency">
+                    <option value="Standard">Standard</option>
+                    <option value="Urgent">Urgent (+20%)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="date">Preferred Date</label>
+                  <input type="date" id="date" formControlName="preferredDate" [min]="minDate">
+                </div>
+              </div>
+
+              <div class="quote-card surface-muted" *ngIf="pricingQuote">
+                <div class="quote-header">
+                  <h3>Price Preview</h3>
+                  <span>{{ pricingQuote.urgency }}</span>
+                </div>
+                <div class="quote-grid">
+                  <div>
+                    <span>Base Price</span>
+                    <strong>{{ formatCurrency(pricingQuote.basePrice) }}</strong>
+                  </div>
+                  <div>
+                    <span>Estimated Final</span>
+                    <strong>{{ formatCurrency(pricingQuote.finalPrice) }}</strong>
+                  </div>
+                </div>
+                <div class="quote-modifiers" *ngIf="pricingQuote.modifiers.length > 0">
+                  <div class="modifier-row" *ngFor="let modifier of pricingQuote.modifiers">
+                    <span>{{ modifier.label }}</span>
+                    <strong>+{{ formatCurrency(modifier.amount) }}</strong>
+                  </div>
+                </div>
+                <p class="quote-note">
+                  {{ pricingQuote.priceLabel || 'Starting from live base pricing.' }} Final price may vary after diagnosis.
+                </p>
+              </div>
+            </fieldset>
+
+            <fieldset *ngIf="currentStep === 2">
+              <legend>Step 2 of 3: Enter Details</legend>
 
               <div class="form-grid">
                 <div class="form-group">
@@ -113,17 +203,6 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
                   </div>
                 </div>
 
-                <div class="form-group">
-                  <label for="service">Service Type *</label>
-                  <select id="service" formControlName="serviceType" required>
-                    <option value="">Select a service</option>
-                    <option *ngFor="let service of services" [value]="service.id">{{ service.name }}</option>
-                  </select>
-                  <div class="error" *ngIf="showFieldError('serviceType', 'required')">
-                    Select a service type.
-                  </div>
-                </div>
-
                 <div class="form-group form-group--wide">
                   <label for="address">Service Address *</label>
                   <textarea
@@ -138,95 +217,115 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
                     Service address is required.
                   </div>
                 </div>
+
+                <div class="form-group form-group--wide">
+                  <label for="email">Email Address</label>
+                  <input type="email" id="email" formControlName="email" autocomplete="email">
+                  <div class="error" *ngIf="showFieldError('email', 'email')">
+                    Enter a valid email address.
+                  </div>
+                </div>
+
+                <div class="form-group" *ngIf="brands.length > 0; else brandInput">
+                  <label for="brand">AC Brand</label>
+                  <select id="brand" formControlName="acBrand">
+                    <option value="">Select brand</option>
+                    <option *ngFor="let brand of brands" [value]="brand">{{ brand }}</option>
+                  </select>
+                </div>
+
+                <ng-template #brandInput>
+                  <div class="form-group">
+                    <label for="brandText">AC Brand</label>
+                    <input id="brandText" type="text" formControlName="acBrand" placeholder="Enter AC brand">
+                  </div>
+                </ng-template>
+
+                <div class="form-group form-group--wide">
+                  <label for="issue">Describe the Issue</label>
+                  <textarea id="issue" formControlName="issue" rows="3" placeholder="Cooling issue, water leakage, unusual noise, or any notes"></textarea>
+                </div>
               </div>
             </fieldset>
 
-            <div class="optional-shell">
-              <button type="button" class="btn-secondary optional-toggle" (click)="toggleOptionalFields()">
-                {{ showOptionalFields ? 'Hide optional details' : 'Add optional details' }}
+            <fieldset *ngIf="currentStep === 3">
+              <legend>Step 3 of 3: Confirm Booking</legend>
+
+              <div class="summary-grid">
+                <div class="summary-card">
+                  <span>Service</span>
+                  <strong>{{ selectedServiceName }}</strong>
+                </div>
+                <div class="summary-card">
+                  <span>City</span>
+                  <strong>{{ selectedArea || '-' }}</strong>
+                </div>
+                <div class="summary-card">
+                  <span>Priority</span>
+                  <strong>{{ bookingForm.get('urgency')?.value || 'Standard' }}</strong>
+                </div>
+                <div class="summary-card">
+                  <span>Date</span>
+                  <strong>{{ preferredDateLabel }}</strong>
+                </div>
+                <div class="summary-card">
+                  <span>Name</span>
+                  <strong>{{ bookingForm.get('name')?.value || '-' }}</strong>
+                </div>
+                <div class="summary-card">
+                  <span>Phone</span>
+                  <strong>{{ bookingForm.get('phone')?.value || '-' }}</strong>
+                </div>
+                <div class="summary-card form-group--wide">
+                  <span>Address</span>
+                  <strong>{{ bookingForm.get('address')?.value || '-' }}</strong>
+                </div>
+              </div>
+
+              <div class="quote-card surface-muted" *ngIf="pricingQuote">
+                <div class="quote-header">
+                  <h3>Final Price Preview</h3>
+                  <span>{{ pricingQuote.urgency }}</span>
+                </div>
+                <div class="quote-grid">
+                  <div>
+                    <span>Base Price</span>
+                    <strong>{{ formatCurrency(pricingQuote.basePrice) }}</strong>
+                  </div>
+                  <div>
+                    <span>Estimated Final</span>
+                    <strong>{{ formatCurrency(pricingQuote.finalPrice) }}</strong>
+                  </div>
+                </div>
+                <p class="quote-note">
+                  {{ pricingQuote.priceLabel || 'Starting from live base pricing.' }} Final price may vary after diagnosis.
+                </p>
+              </div>
+            </fieldset>
+
+            <div class="step-actions">
+              <button type="button" class="btn-secondary step-btn" *ngIf="currentStep > 1" (click)="goToPreviousStep()">
+                Back
               </button>
 
-              <fieldset *ngIf="showOptionalFields">
-                <legend>Optional Details</legend>
+              <button
+                type="button"
+                class="cta-primary-lg step-btn"
+                *ngIf="currentStep < totalSteps"
+                (click)="goToNextStep()">
+                {{ currentStep === 1 ? 'Continue to Details' : 'Review Booking' }}
+              </button>
 
-                <div class="form-grid">
-                  <div class="form-group form-group--wide">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" formControlName="email" autocomplete="email">
-                    <div class="error" *ngIf="showFieldError('email', 'email')">
-                      Enter a valid email address.
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="urgency">Dispatch Priority</label>
-                    <select id="urgency" formControlName="urgency">
-                      <option value="Standard">Standard</option>
-                      <option value="Urgent">Urgent (+20%)</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group" *ngIf="brands.length > 0; else brandInput">
-                    <label for="brand">AC Brand</label>
-                    <select id="brand" formControlName="acBrand">
-                      <option value="">Select brand</option>
-                      <option *ngFor="let brand of brands" [value]="brand">{{ brand }}</option>
-                    </select>
-                  </div>
-
-                  <ng-template #brandInput>
-                    <div class="form-group">
-                      <label for="brandText">AC Brand</label>
-                      <input id="brandText" type="text" formControlName="acBrand" placeholder="Enter AC brand">
-                    </div>
-                  </ng-template>
-
-                  <div class="form-group form-group--wide">
-                    <label for="issue">Describe the Issue</label>
-                    <textarea id="issue" formControlName="issue" rows="4" placeholder="Cooling issue, water leakage, unusual noise, or any notes"></textarea>
-                  </div>
-
-                  <div class="form-group form-group--wide">
-                    <label for="date">Preferred Date</label>
-                    <input type="date" id="date" formControlName="preferredDate" [min]="minDate">
-                  </div>
-                </div>
-              </fieldset>
-            </div>
-
-            <div class="quote-card surface-muted" *ngIf="pricingQuote">
-              <div class="quote-header">
-                <h3>Price Preview</h3>
-                <span>{{ pricingQuote.urgency }}</span>
-              </div>
-              <div class="quote-grid">
-                <div>
-                  <span>Base Price</span>
-                  <strong>{{ formatCurrency(pricingQuote.basePrice) }}</strong>
-                </div>
-                <div>
-                  <span>Estimated Final</span>
-                  <strong>{{ formatCurrency(pricingQuote.finalPrice) }}</strong>
-                </div>
-              </div>
-              <div class="quote-modifiers" *ngIf="pricingQuote.modifiers.length > 0">
-                <div class="modifier-row" *ngFor="let modifier of pricingQuote.modifiers">
-                  <span>{{ modifier.label }}</span>
-                  <strong>+{{ formatCurrency(modifier.amount) }}</strong>
-                </div>
-              </div>
-              <p class="quote-note">
-                {{ pricingQuote.priceLabel || 'Starting from live base pricing.' }} Final price may vary after diagnosis.
-              </p>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="cta-primary-lg" [disabled]="isSubmitting">
-                {{ isSubmitting ? 'Submitting...' : 'Book Now' }}
+              <button
+                type="submit"
+                class="cta-primary-lg step-btn"
+                *ngIf="currentStep === totalSteps"
+                [disabled]="isSubmitting">
+                {{ isSubmitting ? 'Submitting...' : 'Confirm & Book Service' }}
               </button>
             </div>
 
-            <p class="submit-note">We'll confirm availability and contact you shortly after submission.</p>
+            <p class="submit-note" *ngIf="currentStep === totalSteps">We'll confirm availability and contact you shortly after submission.</p>
           </form>
         </div>
 
@@ -262,6 +361,7 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
         </aside>
       </div>
     </section>
+    </ng-template>
 
     <section class="section-shell" *ngIf="liveStatusLoading || liveStatus" id="tracker">
       <div class="container">
@@ -276,7 +376,12 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
             </div>
           </div>
 
-          <app-loading *ngIf="liveStatusLoading" message="Loading live status..."></app-loading>
+          <ng-container *ngIf="liveStatusLoading">
+            <app-skeleton-loader *ngIf="deviceService.isMobile$ | async; else desktopTrackerLoading" [itemCount]="3"></app-skeleton-loader>
+            <ng-template #desktopTrackerLoading>
+              <app-loading message="Loading live status..."></app-loading>
+            </ng-template>
+          </ng-container>
 
           <div *ngIf="liveStatus" class="tracker-layout">
             <div class="timeline">
@@ -361,13 +466,13 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       align-items: start;
       display: grid;
       gap: 1rem;
-      grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.75fr);
+      grid-template-columns: 1fr;
     }
 
     .booking-form-container,
     .booking-sidebar,
     .tracker-card {
-      padding: 1.75rem;
+      padding: 1.25rem;
     }
 
     .booking-form-container > p,
@@ -378,8 +483,8 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     }
 
     .booking-intro {
-      font-size: 1rem;
-      margin-bottom: 1.25rem;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
     }
 
     .info-banner {
@@ -392,10 +497,11 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     }
 
     .booking-city-bar {
-      align-items: center;
+      align-items: stretch;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       gap: 1rem;
+      justify-content: space-between;
     }
 
     .booking-city-bar span {
@@ -432,7 +538,7 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     .quote-grid {
       display: grid;
       gap: 0.9rem;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
     }
 
     .form-group--wide {
@@ -495,14 +601,6 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       font-weight: 600;
     }
 
-    .optional-shell {
-      margin-bottom: 1.2rem;
-    }
-
-    .optional-toggle {
-      width: 100%;
-    }
-
     .quote-card {
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-md);
@@ -558,9 +656,15 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       margin: 0.9rem 0 0;
     }
 
-    .form-actions {
+    .step-actions {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .step-btn {
+      min-height: 48px;
+      width: 100%;
     }
 
     .cta-primary-lg[disabled] {
@@ -617,7 +721,7 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
     .tracker-layout {
       display: grid;
       gap: 1.25rem;
-      grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.25fr);
+      grid-template-columns: 1fr;
       margin-top: 1.25rem;
     }
 
@@ -678,54 +782,64 @@ import { EventTrackingService } from '../../../core/services/event-tracking.serv
       margin: 0 0 1rem;
     }
 
-    @media (max-width: 1100px) {
-      .tracker-layout {
-        grid-template-columns: 1fr;
+    @media (min-width: 640px) {
+      .booking-city-bar {
+        align-items: center;
+        flex-direction: row;
+      }
+
+      .step-actions {
+        align-items: center;
+        flex-direction: row;
+        justify-content: space-between;
+      }
+
+      .step-btn {
+        max-width: 240px;
       }
     }
 
-    @media (max-width: 920px) {
+    @media (min-width: 920px) {
       .booking-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.75fr);
       }
     }
 
-    @media (max-width: 768px) {
+    @media (min-width: 768px) {
       .booking-form-container,
       .booking-sidebar,
-      .tracker-card,
-      fieldset {
-        padding: 1.25rem;
+      .tracker-card {
+        padding: 1.5rem;
       }
 
       .form-grid,
       .success-grid,
       .summary-grid,
       .quote-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .quote-header,
       .tracker-header,
       .success-actions {
-        align-items: stretch;
-        flex-direction: column;
+        align-items: center;
+        flex-direction: row;
       }
+    }
 
-      .booking-city-bar {
-        align-items: stretch;
-        flex-direction: column;
+    @media (min-width: 1100px) {
+      .tracker-layout {
+        grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.25fr);
       }
     }
   `]
 })
-export class BookingComponent implements OnInit {
+export class BookingComponent implements OnInit, OnDestroy {
   bookingForm: FormGroup;
   reviewForm: FormGroup;
   isSubmitting = false;
   isSubmittingReview = false;
   liveStatusLoading = false;
-  showOptionalFields = false;
   selectedArea = '';
   bookingSuccessMessage = '';
   bookingErrorMessage = '';
@@ -743,12 +857,21 @@ export class BookingComponent implements OnInit {
   trackingRequestNo = '';
   minDate = new Date().toISOString().split('T')[0];
   readonly bookingHeroImage = this.getImage(IMAGE_CONFIG.services);
+  readonly totalSteps = 3;
+  readonly bookingSteps = ['Select Service', 'Enter Details', 'Confirm Booking'];
+  currentStep = 1;
+  private cityLockedFromRoute = false;
+  private routeEntryHint = '';
 
   constructor(
     private route: ActivatedRoute,
     private fb: FormBuilder,
     private configService: ConfigService,
     private apiService: ApiService,
+    private authService: AuthService,
+    private locationService: LocationService,
+    private mobileConversionService: MobileConversionService,
+    readonly deviceService: DeviceService,
     private eventTrackingService: EventTrackingService
   ) {
     this.bookingForm = this.fb.group({
@@ -772,23 +895,34 @@ export class BookingComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.mobileConversionService.setGlobalCTAVisibility(false);
     void this.eventTrackingService.trackBookingFormOpened();
+    this.mobileConversionService.startStepTimer(this.currentStep);
     this.loadReviewSummary();
+    this.applyUserPrefill();
+    this.routeEntryHint = typeof document !== 'undefined' ? document.referrer : '';
+
     const defaultCity = this.configService.selectedCity || this.availableCities[0] || '';
     this.selectedArea = defaultCity;
-    this.bookingForm.patchValue({ city: defaultCity });
+    this.bookingForm.patchValue({ city: defaultCity }, { emitEvent: false });
+    this.applyServiceDefault(this.mobileConversionService.readRememberedServiceHint());
     this.bindPricingRefresh();
+    this.syncBookingProgress();
 
     this.route.queryParams.subscribe(params => {
       const service = `${params['service'] ?? ''}`.trim();
       const area = `${params['area'] ?? params['city'] ?? ''}`.trim();
       const trackId = Number(params['trackId'] ?? 0);
       const requestNo = `${params['requestNo'] ?? ''}`.trim();
+      this.routeEntryHint = `${params['entry'] ?? ''}`.trim();
 
       if (service) {
-        this.bookingForm.patchValue({ serviceType: service });
+        this.applyServiceDefault(service);
+      } else {
+        this.applyServiceDefault();
       }
 
+      this.cityLockedFromRoute = !!area;
       if (area) {
         this.selectedArea = area;
         this.bookingForm.patchValue({ city: area });
@@ -798,6 +932,7 @@ export class BookingComponent implements OnInit {
       }
 
       this.refreshPricingQuote();
+      this.syncBookingProgress();
 
       if (trackId > 0 && requestNo) {
         this.trackingRequestId = trackId;
@@ -805,6 +940,19 @@ export class BookingComponent implements OnInit {
         this.loadLiveStatus(trackId, requestNo);
       }
     });
+
+    void this.attemptAutoDetectCity();
+  }
+
+  ngOnDestroy(): void {
+    this.mobileConversionService.setGlobalCTAVisibility(true);
+    if (!this.bookingReceipt) {
+      if (this.currentStep < this.totalSteps && this.hasBookingDraft()) {
+        this.mobileConversionService.recordStepDropOff(this.currentStep);
+      }
+
+      this.mobileConversionService.completeStepTimer(this.currentStep);
+    }
   }
 
   get services(): Service[] {
@@ -831,16 +979,79 @@ export class BookingComponent implements OnInit {
     return this.configService.getWhatsAppUrl(cityMessage);
   }
 
+  get selectedServiceName(): string {
+    const serviceId = `${this.bookingForm.get('serviceType')?.value ?? ''}`.trim();
+    if (!serviceId) {
+      return 'Not selected';
+    }
+
+    return this.services.find(service => service.id === serviceId)?.name || serviceId;
+  }
+
+  get preferredDateLabel(): string {
+    const rawValue = `${this.bookingForm.get('preferredDate')?.value ?? ''}`.trim();
+    if (!rawValue) {
+      return 'Flexible';
+    }
+
+    const parsedDate = new Date(rawValue);
+    if (Number.isNaN(parsedDate.getTime())) {
+      return 'Flexible';
+    }
+
+    return parsedDate.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
   showFieldError(controlName: string, errorName: string): boolean {
     const control = this.bookingForm.get(controlName);
     return !!control && control.touched && control.hasError(errorName);
   }
 
+  goToNextStep(): void {
+    if (this.currentStep >= this.totalSteps) {
+      return;
+    }
+
+    if (!this.validateStep(this.currentStep)) {
+      return;
+    }
+
+    this.mobileConversionService.recordCtaClick('booking-next-step', 'mobile-booking');
+    this.mobileConversionService.completeStepTimer(this.currentStep);
+    this.currentStep += 1;
+    this.preloadUpcomingStep(this.currentStep);
+    this.mobileConversionService.startStepTimer(this.currentStep);
+    this.syncBookingProgress();
+  }
+
+  goToPreviousStep(): void {
+    if (this.currentStep <= 1) {
+      return;
+    }
+
+    this.mobileConversionService.recordCtaClick('booking-back-step', 'mobile-booking');
+    this.mobileConversionService.completeStepTimer(this.currentStep);
+    this.currentStep -= 1;
+    this.mobileConversionService.startStepTimer(this.currentStep);
+    this.syncBookingProgress();
+  }
+
   onSubmit(): void {
+    if (this.currentStep < this.totalSteps) {
+      this.goToNextStep();
+      return;
+    }
+
     if (this.bookingForm.invalid) {
       this.bookingForm.markAllAsTouched();
       return;
     }
+
+    this.mobileConversionService.recordCtaClick('booking-submit', 'mobile-booking');
 
     this.isSubmitting = true;
     this.bookingSuccessMessage = '';
@@ -923,14 +1134,17 @@ export class BookingComponent implements OnInit {
       return;
     }
 
+    this.mobileConversionService.recordCtaClick('booking-track-service', 'mobile-booking');
     document.getElementById('tracker')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   onCallClick(): void {
+    this.mobileConversionService.recordCtaClick('booking-call', 'mobile-booking');
     void this.eventTrackingService.trackCallButton('Booking Module Call');
   }
 
   onWhatsAppClick(): void {
+    this.mobileConversionService.recordCtaClick('booking-whatsapp', 'mobile-booking');
     void this.eventTrackingService.trackWhatsAppClick('Booking Module WhatsApp');
   }
 
@@ -941,10 +1155,22 @@ export class BookingComponent implements OnInit {
     if (nextCity) {
       this.configService.setSelectedCity(nextCity);
     }
+    this.mobileConversionService.recordCtaClick('booking-city-change', 'mobile-booking');
+    this.syncBookingProgress();
   }
 
-  toggleOptionalFields(): void {
-    this.showOptionalFields = !this.showOptionalFields;
+  onMobilePrimaryAction(actionLabel: string): void {
+    const normalizedAction = `${actionLabel ?? 'primary-action'}`
+      .toLowerCase()
+      .replace(/\s+/g, '-');
+    this.mobileConversionService.recordCtaClick(`booking-${normalizedAction}`, 'mobile-booking');
+  }
+
+  onMobileSecondaryAction(actionLabel: string): void {
+    const normalizedAction = `${actionLabel ?? 'secondary-action'}`
+      .toLowerCase()
+      .replace(/\s+/g, '-');
+    this.mobileConversionService.recordCtaClick(`booking-${normalizedAction}`, 'mobile-booking');
   }
 
   formatCurrency(value?: number): string {
@@ -967,6 +1193,13 @@ export class BookingComponent implements OnInit {
   private bindPricingRefresh(): void {
     ['serviceType', 'preferredDate', 'urgency', 'city'].forEach(controlName => {
       this.bookingForm.get(controlName)?.valueChanges.subscribe(value => {
+        if (controlName === 'serviceType') {
+          const selectedService = `${value ?? ''}`.trim();
+          if (selectedService) {
+            this.mobileConversionService.rememberServiceHint(selectedService);
+          }
+        }
+
         if (controlName === 'city') {
           this.selectedArea = `${value ?? ''}`.trim();
           if (this.selectedArea) {
@@ -975,6 +1208,7 @@ export class BookingComponent implements OnInit {
         }
 
         this.refreshPricingQuote();
+        this.syncBookingProgress();
       });
     });
   }
@@ -1044,6 +1278,7 @@ export class BookingComponent implements OnInit {
     const selectedService = this.bookingForm.get('serviceType')?.value || '';
     const selectedCity = this.bookingForm.get('city')?.value || this.selectedArea;
 
+    this.mobileConversionService.completeStepTimer(this.currentStep);
     void this.eventTrackingService.trackBookingSubmitted(response);
     this.bookingReceipt = {
       ...response,
@@ -1053,25 +1288,143 @@ export class BookingComponent implements OnInit {
     this.bookingSuccessMessage = response.message || 'Your service request has been submitted successfully. We will contact you shortly.';
     this.trackingRequestId = response.bookingId;
     this.trackingRequestNo = response.requestNo;
+    this.currentStep = this.totalSteps;
     this.loadLiveStatus(response.bookingId, response.requestNo);
     this.selectedArea = selectedCity;
     if (selectedCity) {
       this.configService.setSelectedCity(selectedCity);
     }
 
-    this.bookingForm.reset({
-      name: '',
-      phone: '',
-      email: '',
+    this.bookingForm.patchValue({
       serviceType: selectedService,
-      city: selectedCity,
-      urgency: 'Standard',
-      acBrand: '',
-      issue: '',
-      address: '',
-      preferredDate: ''
+      city: selectedCity
     });
     this.refreshPricingQuote();
+    this.syncBookingProgress();
+  }
+
+  private applyUserPrefill(): void {
+    const user = this.authService.getUser();
+    if (!user) {
+      return;
+    }
+
+    const currentFormValue = this.bookingForm.getRawValue();
+    const fullName = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
+
+    this.bookingForm.patchValue({
+      email: `${currentFormValue.email ?? ''}`.trim() || user.email || '',
+      name: `${currentFormValue.name ?? ''}`.trim() || fullName || user.username || '',
+      phone: `${currentFormValue.phone ?? ''}`.trim() || user.phone || ''
+    }, { emitEvent: false });
+  }
+
+  private applyServiceDefault(preferredServiceId?: string): void {
+    const currentService = `${this.bookingForm.get('serviceType')?.value ?? ''}`.trim();
+    if (currentService) {
+      return;
+    }
+
+    const preferred = `${preferredServiceId ?? ''}`.trim() || this.mobileConversionService.readRememberedServiceHint();
+    const recommendedServiceId = this.mobileConversionService.getRecommendedServices(
+      this.services,
+      preferred,
+      this.routeEntryHint
+    )[0]?.id;
+    const fallbackServiceId = this.mobileConversionService
+      .filterAndSortServices(this.services, 'All', 'popularity')[0]?.id;
+    const resolvedServiceId = this.services.some(service => service.id === preferred)
+      ? preferred
+      : (recommendedServiceId || fallbackServiceId || this.services[0]?.id || '');
+
+    if (!resolvedServiceId) {
+      return;
+    }
+
+    this.bookingForm.patchValue({ serviceType: resolvedServiceId }, { emitEvent: false });
+    this.mobileConversionService.rememberServiceHint(resolvedServiceId);
+  }
+
+  private async attemptAutoDetectCity(): Promise<void> {
+    if (this.cityLockedFromRoute || this.availableCities.length === 0) {
+      return;
+    }
+
+    const location = await this.locationService.getLocation();
+    if (!location) {
+      return;
+    }
+
+    const nearestCity = this.mobileConversionService.findNearestCity(
+      location.latitude,
+      location.longitude,
+      this.availableCities
+    );
+
+    if (!nearestCity || nearestCity === this.selectedArea) {
+      return;
+    }
+
+    this.selectedArea = nearestCity;
+    this.bookingForm.patchValue({ city: nearestCity });
+    this.configService.setSelectedCity(nearestCity);
+    this.syncBookingProgress();
+  }
+
+  private syncBookingProgress(): void {
+    this.mobileConversionService.updateBookingProgress({
+      currentStep: this.currentStep,
+      hasDraft: this.hasBookingDraft(),
+      hasReceipt: !!this.bookingReceipt,
+      requestNo: this.bookingReceipt?.requestNo,
+      totalSteps: this.totalSteps
+    });
+  }
+
+  private hasBookingDraft(): boolean {
+    if (this.currentStep > 1) {
+      return true;
+    }
+
+    const name = `${this.bookingForm.get('name')?.value ?? ''}`.trim();
+    const phone = `${this.bookingForm.get('phone')?.value ?? ''}`.trim();
+    const address = `${this.bookingForm.get('address')?.value ?? ''}`.trim();
+    const email = `${this.bookingForm.get('email')?.value ?? ''}`.trim();
+    return !!(name || phone || address || email);
+  }
+
+  private preloadUpcomingStep(step: number): void {
+    if (step === 2) {
+      ['name', 'phone', 'address', 'email'].forEach(controlName => {
+        this.bookingForm.get(controlName)?.updateValueAndValidity({ emitEvent: false, onlySelf: true });
+      });
+      return;
+    }
+
+    if (step === 3) {
+      this.refreshPricingQuote();
+    }
+  }
+
+  private validateStep(step: number): boolean {
+    const controlsByStep: Record<number, string[]> = {
+      1: ['serviceType'],
+      2: ['name', 'phone', 'address', 'email'],
+      3: []
+    };
+
+    const controlNames = controlsByStep[step] ?? [];
+    let isValid = true;
+
+    controlNames.forEach(controlName => {
+      const control = this.bookingForm.get(controlName);
+      control?.markAsTouched();
+      if (control?.invalid) {
+        isValid = false;
+      }
+    });
+
+    return isValid;
   }
 
   private normalizeLiveStatus(status: ServiceRequestLiveStatus): ServiceRequestLiveStatus {

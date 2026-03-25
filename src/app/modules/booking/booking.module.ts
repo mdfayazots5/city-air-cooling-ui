@@ -5,6 +5,8 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { SharedModule } from '../../shared/shared.module';
 import { BookingComponent } from './booking/booking.component';
+import { BookingFormMobileComponent } from './booking/booking-form.mobile.component';
+import { MobileBookingStepperComponent } from './booking/mobile-booking-stepper.component';
 
 const routes: Routes = [
   { path: '', component: BookingComponent },
@@ -13,7 +15,9 @@ const routes: Routes = [
 
 @NgModule({
   declarations: [
-    BookingComponent
+    BookingComponent,
+    BookingFormMobileComponent,
+    MobileBookingStepperComponent
   ],
   imports: [
     CommonModule,

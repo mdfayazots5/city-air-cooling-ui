@@ -9,6 +9,7 @@ import { LayoutModule } from './layouts/layout.module';
 import { SharedModule } from './shared/shared.module';
 
 import { AppComponent } from './app.component';
+import { CookieBannerComponent } from './shared/components/cookie-banner/cookie-banner.component';
 import { ConfigService } from './core/services/config.service';
 
 export function initializeApp(configService: ConfigService): () => Promise<void> {
@@ -27,7 +28,13 @@ export function initializeApp(configService: ConfigService): () => Promise<void>
     AppRoutingModule,
     CoreModule,
     LayoutModule,
-    SharedModule
+    SharedModule,
+    // provide standalone components used by AppComponent
+    // e.g., cookie banner is standalone
+    // (keeps AppComponent non-standalone while using standalone child components)
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore: imported for Angular compiler
+    CookieBannerComponent
   ],
   providers: [
     {

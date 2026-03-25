@@ -1,26 +1,33 @@
 import { Component } from '@angular/core';
 import { ConfigService } from '../../core/services/config.service';
+import { DeviceService } from '../../core/services/device.service';
 
 @Component({
   selector: 'app-public-layout',
   template: `
     <app-main-layout [useRouterOutlet]="false">
-      <div class="public-layout">
-        <app-header></app-header>
-
-        <main class="public-content">
+      <ng-container *ngIf="deviceService.isMobile$ | async; else desktopPublicLayout">
+        <main class="public-content public-content--mobile">
           <router-outlet></router-outlet>
         </main>
+      </ng-container>
 
-        <a
-          routerLink="/booking"
-          [queryParams]="selectedCity ? { city: selectedCity } : null"
-          class="floating-cta">
-          Book Now
-        </a>
+      <ng-template #desktopPublicLayout>
+        <div class="public-layout">
+          <app-header></app-header>
 
-        <app-footer></app-footer>
-      </div>
+          <main class="public-content">
+            <router-outlet></router-outlet>
+          </main>
+
+          <app-sticky-cta
+            [queryParams]="selectedCity ? { city: selectedCity } : null"
+            label="Book Service">
+          </app-sticky-cta>
+
+          <app-footer></app-footer>
+        </div>
+      </ng-template>
     </app-main-layout>
   `,
   styles: [`
@@ -40,15 +47,25 @@ import { ConfigService } from '../../core/services/config.service';
       padding-top: 80px;
     }
 
+    .public-content--mobile {
+      min-height: 100vh;
+      padding-bottom: 0;
+      padding-top: 0;
+    }
+
     @media (max-width: 900px) {
       .public-content {
+        padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
         padding-top: 76px;
       }
     }
   `]
 })
 export class PublicLayoutComponent {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    readonly deviceService: DeviceService
+  ) {}
 
   get selectedCity(): string {
     return this.configService.selectedCity;

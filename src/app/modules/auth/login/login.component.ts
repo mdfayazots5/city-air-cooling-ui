@@ -5,10 +5,26 @@ import { finalize } from 'rxjs/operators';
 import { BrandConfig } from '../../../core/models';
 import { AuthService, LoginResponse } from '../../../core/services/auth.service';
 import { ConfigService } from '../../../core/services/config.service';
+import { DeviceService } from '../../../core/services/device.service';
 
 @Component({
   selector: 'app-login',
   template: `
+    <app-login-mobile
+      *ngIf="deviceService.isMobile$ | async; else desktopLogin"
+      [brand]="brand"
+      [loginForm]="loginForm"
+      [isLoading]="isLoading"
+      [errorMessage]="errorMessage"
+      [infoMessage]="infoMessage"
+      [showHelp]="showHelp"
+      [showPassword]="showPassword"
+      (submitRequested)="onSubmit()"
+      (togglePasswordVisibility)="togglePasswordVisibility()"
+      (helpToggled)="showHelp = !showHelp">
+    </app-login-mobile>
+
+    <ng-template #desktopLogin>
     <div class="login-container">
       <div class="login-card">
         <div class="login-header">
@@ -89,6 +105,7 @@ import { ConfigService } from '../../../core/services/config.service';
         </div>
       </div>
     </div>
+    </ng-template>
   `,
   styles: [`
     .login-container {
@@ -313,7 +330,7 @@ import { ConfigService } from '../../../core/services/config.service';
   `]
 })
 export class LoginComponent implements OnInit {
-  loginForm!: FormGroup;
+  loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
   infoMessage = '';
@@ -325,8 +342,15 @@ export class LoginComponent implements OnInit {
     private authService: AuthService,
     private router: Router,
     private route: ActivatedRoute,
-    private configService: ConfigService
-  ) {}
+    private configService: ConfigService,
+    readonly deviceService: DeviceService
+  ) {
+    this.loginForm = this.fb.group({
+      username: ['', Validators.required],
+      password: ['', Validators.required],
+      rememberMe: [false]
+    });
+  }
 
   get brand(): BrandConfig {
     return this.configService.brand;
@@ -338,11 +362,6 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    this.loginForm = this.fb.group({
-      username: ['', Validators.required],
-      password: ['', Validators.required],
-      rememberMe: [false]
-    });
   }
 
   onSubmit(): void {

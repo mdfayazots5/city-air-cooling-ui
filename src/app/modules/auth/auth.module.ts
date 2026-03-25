@@ -4,13 +4,15 @@ import { RouterModule, Routes } from '@angular/router';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 
 import { LoginComponent } from './login/login.component';
+import { LoginMobileComponent } from './login/login.mobile.component';
 const routes: Routes = [
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: 'login', component: LoginComponent }
 ];
 @NgModule({
   declarations: [
-    LoginComponent
+    LoginComponent,
+    LoginMobileComponent
   ],
   imports: [
     CommonModule,
